@@ -1,0 +1,17 @@
+# Node
+node_modules/
+apps/web/.next/
+apps/web/out/
+apps/web/.env.local
+
+# PHP / Laravel
+apps/api/vendor/
+apps/api/.env
+apps/api/storage/*.key
+apps/api/storage/framework/cache/*
+apps/api/storage/framework/sessions/*
+apps/api/storage/framework/views/*
+apps/api/storage/logs/*
+
+# OS
+.DS_Store
