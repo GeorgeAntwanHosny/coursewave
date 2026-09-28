@@ -16,7 +16,7 @@ export default function Home() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/ping`)
+    fetch(`${apiUrl}/ping`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
