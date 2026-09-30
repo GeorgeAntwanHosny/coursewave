@@ -21,6 +21,9 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-4 md:flex">
+          <Link href="/courses" className="text-sm text-muted-foreground hover:text-foreground">
+            Courses
+          </Link>
           {user ? (
             <>
               <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
@@ -55,6 +58,9 @@ export function Navbar() {
       {open && (
         <div className="border-t border-border px-4 py-3 md:hidden">
           <div className="flex flex-col gap-3">
+            <Link href="/courses" className="text-sm text-muted-foreground hover:text-foreground">
+              Courses
+            </Link>
             {user ? (
               <>
                 <Link href="/dashboard" onClick={() => setOpen(false)} className="text-sm">

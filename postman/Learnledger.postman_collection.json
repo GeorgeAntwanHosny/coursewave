@@ -46,6 +46,49 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{base_url}}/api/logout", "host": ["{{base_url}}"], "path": ["api", "logout"] }
           }
+        },
+        {
+          "name": "Courses",
+          "item": [
+            {
+              "name": "List published courses",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/courses?search=",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "courses"],
+                  "query": [{ "key": "search", "value": "" }]
+                }
+              }
+            },
+            {
+              "name": "Get course by slug",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/courses/{{course_slug}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "courses", "{{course_slug}}"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "List published courses (with search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/courses?search=laravel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "courses"],
+              "query": [{ "key": "search", "value": "laravel" }]
+            }
+          }
         }
       ]
     }
