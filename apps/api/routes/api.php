@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\PlanController;
+use App\Http\Controllers\Api\StripeWebhookController;
+use App\Http\Controllers\Api\SubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,3 +40,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/courses', [CourseController::class, 'index']);
 Route::get('/courses/{slug}', [CourseController::class, 'show']);
+
+Route::get('/plans', [PlanController::class, 'index']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/subscriptions/checkout', [SubscriptionController::class, 'checkout']);
+    Route::post('/subscriptions/confirm', [SubscriptionController::class, 'confirm']);
+    Route::get('/subscriptions', [SubscriptionController::class, 'index']);
+    Route::get('/subscriptions/current', [SubscriptionController::class, 'current']);
+});
+
+Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);

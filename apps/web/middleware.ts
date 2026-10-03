@@ -6,6 +6,7 @@ const GUEST_ONLY_ROUTES = ["/login", "/register"];
 // path prefix -> roles allowed (empty array = any authenticated role)
 const PROTECTED_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: "/dashboard", roles: [] },
+  { prefix: "/billing", roles: [] },
   { prefix: "/instructor", roles: ["instructor"] },
   { prefix: "/admin", roles: ["admin"] },
 ];
@@ -36,5 +37,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/register", "/dashboard/:path*", "/instructor/:path*", "/admin/:path*"],
+  matcher: ["/login", "/register", "/dashboard/:path*", "/instructor/:path*", "/billing/:path*", "/admin/:path*"],
 };

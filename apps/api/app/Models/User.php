@@ -54,4 +54,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(Course::class, 'instructor_id');
     }
+
+    public function subscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Subscription::class, 'student_id');
+    }
 }

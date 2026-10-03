@@ -17,12 +17,15 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="text-lg font-semibold">
-          CourseWave
+          LearnLedger
         </Link>
 
         <nav className="hidden items-center gap-4 md:flex">
           <Link href="/courses" className="text-sm text-muted-foreground hover:text-foreground">
             Courses
+          </Link>
+          <Link href="/plans" className="text-sm text-muted-foreground hover:text-foreground">
+            Plans
           </Link>
           {user ? (
             <>
@@ -60,6 +63,9 @@ export function Navbar() {
           <div className="flex flex-col gap-3">
             <Link href="/courses" className="text-sm text-muted-foreground hover:text-foreground">
               Courses
+            </Link>
+            <Link href="/plans" className="text-sm text-muted-foreground hover:text-foreground">
+              Plans
             </Link>
             {user ? (
               <>

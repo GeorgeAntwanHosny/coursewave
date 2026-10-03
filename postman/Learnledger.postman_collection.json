@@ -16,7 +16,11 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"Jane Student\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"Password123\",\n  \"password_confirmation\": \"Password123\",\n  \"role\": \"student\"\n}"
             },
-            "url": { "raw": "{{base_url}}/api/register", "host": ["{{base_url}}"], "path": ["api", "register"] }
+            "url": {
+              "raw": "{{base_url}}/api/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "register"]
+            }
           }
         },
         {
@@ -28,7 +32,11 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"jane@example.com\",\n  \"password\": \"Password123\"\n}"
             },
-            "url": { "raw": "{{base_url}}/api/login", "host": ["{{base_url}}"], "path": ["api", "login"] }
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "login"]
+            }
           }
         },
         {
@@ -36,7 +44,11 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{base_url}}/api/me", "host": ["{{base_url}}"], "path": ["api", "me"] }
+            "url": {
+              "raw": "{{base_url}}/api/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "me"]
+            }
           }
         },
         {
@@ -44,7 +56,11 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{base_url}}/api/logout", "host": ["{{base_url}}"], "path": ["api", "logout"] }
+            "url": {
+              "raw": "{{base_url}}/api/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logout"]
+            }
           }
         },
         {
@@ -89,6 +105,80 @@
               "query": [{ "key": "search", "value": "laravel" }]
             }
           }
+        },
+        {
+          "name": "Billing",
+          "item": [
+            {
+              "name": "List active plans",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/plans",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "plans"]
+                }
+              }
+            },
+            {
+              "name": "Initiate checkout",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"plan_id\": 1\n}" },
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/checkout",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "subscriptions", "checkout"]
+                }
+              }
+            },
+            {
+              "name": "Confirm subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"session_id\": \"{{stripe_session_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/confirm",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "subscriptions", "confirm"]
+                }
+              }
+            },
+            {
+              "name": "My subscriptions",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "subscriptions"]
+                }
+              }
+            },
+            {
+              "name": "Current subscription",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{base_url}}/api/subscriptions/current", "host": ["{{base_url}}"], "path": ["api", "subscriptions", "current"] }
+              }
+            }
+          ]
         }
       ]
     }

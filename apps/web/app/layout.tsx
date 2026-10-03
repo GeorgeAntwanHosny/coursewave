@@ -9,7 +9,7 @@ import { Navbar } from "@/components/layout/navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CourseWave",
+  title: "LearnLedger",
   description: "Subscription-based learning platform",
 };
 
