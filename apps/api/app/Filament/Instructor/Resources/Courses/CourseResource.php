@@ -5,6 +5,7 @@ namespace App\Filament\Instructor\Resources\Courses;
 use App\Filament\Instructor\Resources\Courses\Pages\CreateCourse;
 use App\Filament\Instructor\Resources\Courses\Pages\EditCourse;
 use App\Filament\Instructor\Resources\Courses\Pages\ListCourses;
+use App\Filament\Instructor\Resources\Courses\Pages\ViewCourseProgress;
 use App\Filament\Instructor\Resources\Courses\RelationManagers\ModulesRelationManager;
 use App\Filament\Instructor\Resources\Courses\Schemas\CourseForm;
 use App\Filament\Instructor\Resources\Courses\Tables\CoursesTable;
@@ -50,6 +51,7 @@ class CourseResource extends Resource
             'index' => ListCourses::route('/'),
             'create' => CreateCourse::route('/create'),
             'edit' => EditCourse::route('/{record}/edit'),
+            'progress' => ViewCourseProgress::route('/{record}/progress'),
         ];
     }
 

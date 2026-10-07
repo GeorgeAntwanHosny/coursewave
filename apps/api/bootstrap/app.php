@@ -17,7 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'subscription.active' => \App\Http\Middleware\EnsureActiveSubscription::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 1. Force JSON responses for API routes or JSON-accepting clients

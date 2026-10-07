@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -50,13 +51,23 @@ class User extends Authenticatable implements FilamentUser
         };
     }
 
-    public function courses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function courses(): HasMany
     {
         return $this->hasMany(Course::class, 'instructor_id');
     }
 
-    public function subscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class, 'student_id');
+    }
+
+    public function consumptionEvents(): HasMany
+    {
+        return $this->hasMany(ConsumptionEvent::class, 'student_id');
+    }
+
+    public function lessonProgress(): HasMany
+    {
+        return $this->hasMany(LessonProgress::class, 'student_id');
     }
 }

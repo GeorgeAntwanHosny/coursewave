@@ -12,7 +12,7 @@ class Lesson extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['module_id', 'title', 'type', 'video_url', 'body', 'order'];
+    protected $fillable = ['module_id', 'title', 'type', 'video_url', 'video_duration_seconds', 'body', 'order'];
 
     public function module(): BelongsTo
     {
@@ -27,5 +27,15 @@ class Lesson extends Model
     public function quiz(): HasOne
     {
         return $this->hasOne(Quiz::class);
+    }
+
+    public function consumptionEvents(): HasMany
+    {
+        return $this->hasMany(ConsumptionEvent::class);
+    }
+
+    public function progressRecords(): HasMany
+    {
+        return $this->hasMany(LessonProgress::class);
     }
 }

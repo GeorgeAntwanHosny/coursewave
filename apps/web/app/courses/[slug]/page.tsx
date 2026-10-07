@@ -1,15 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCourse } from "@/hooks/use-courses";
+import { useCurrentSubscription } from "@/hooks/use-subscriptions";
+import { useAuthStore } from "@/stores/auth-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PlayCircle, FileText, HelpCircle } from "lucide-react";
 import Image from "next/image";
 
 export default function CourseDetailPage() {
   const params = useParams<{ slug: string }>();
   const { data: course, isLoading, isError } = useCourse(params.slug);
+  const user = useAuthStore((s) => s.user);
+  const { data: subscription } = useCurrentSubscription();
 
   if (isLoading) {
     return (
@@ -42,6 +48,24 @@ export default function CourseDetailPage() {
       <h1 className="text-2xl font-semibold sm:text-3xl">{course.title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">By {course.instructor_name}</p>
       <p className="mt-4 text-muted-foreground">{course.description}</p>
+
+      <div className="mt-6">
+        {user && subscription && (
+          <Link href={`/learn/${course.slug}`}>
+            <Button>Go to course</Button>
+          </Link>
+        )}
+        {user && !subscription && (
+          <Link href="/plans">
+            <Button variant="outline">Subscribe to access</Button>
+          </Link>
+        )}
+        {!user && (
+          <Link href={`/login?redirect=/courses/${course.slug}`}>
+            <Button variant="outline">Log in to access</Button>
+          </Link>
+        )}
+      </div>
 
       <div className="mt-8 space-y-4">
         {course.modules.length === 0 && (

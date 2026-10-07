@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiEnvelope } from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 
 type Subscription = {
@@ -61,11 +62,13 @@ export function useMySubscriptions() {
 }
 
 export function useCurrentSubscription() {
+  const token = useAuthStore((s) => s.token);
   return useQuery({
     queryKey: ["current-subscription"],
     queryFn: async () => {
       const { data } = await apiClient.get<ApiEnvelope<Subscription | null>>("/subscriptions/current");
       return data.data;
     },
+    enabled: !!token,
   });
 }

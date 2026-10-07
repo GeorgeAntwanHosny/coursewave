@@ -23,18 +23,33 @@ class LessonForm
                         ->mapWithKeys(fn ($m) => [$m->id => "{$m->course->title} → {$m->title}"]))
                     ->required()
                     ->searchable(),
-                TextInput::make('title')->required()->maxLength(255),
+
+                TextInput::make('title')
+                    ->required()
+                    ->maxLength(255),
+
                 Select::make('type')
                     ->options(['video' => 'Video', 'text' => 'Text'])
                     ->required()
                     ->live(),
+
                 TextInput::make('video_url')
                     ->url()
                     ->visible(fn (callable $get) => $get('type') === 'video'),
+
+                TextInput::make('video_duration_seconds')
+                    ->numeric()
+                    ->label('Video duration (seconds)')
+                    ->helperText('Optional — used for duration-aware progress display. Leave blank if unknown.')
+                    ->visible(fn (callable $get) => $get('type') === 'video'),
+
                 RichEditor::make('body')
                     ->visible(fn (callable $get) => $get('type') === 'text')
                     ->columnSpanFull(),
-                TextInput::make('order')->numeric()->default(0),
+
+                TextInput::make('order')
+                    ->numeric()
+                    ->default(0),
             ]);
     }
 }

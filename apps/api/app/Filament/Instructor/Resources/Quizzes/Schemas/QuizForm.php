@@ -19,11 +19,22 @@ class QuizForm
             ->components([
                 Select::make('lesson_id')
                     ->label('Lesson')
-                    ->options(fn () => Lesson::whereHas('module.course', fn ($q) => $q->where('instructor_id', Auth::id()))
-                        ->whereDoesntHave('quiz')
-                        ->with('module')
-                        ->get()
-                        ->mapWithKeys(fn ($l) => [$l->id => "{$l->module->title} → {$l->title}"]))
+                    ->options(function ($record) {
+                        return Lesson::query()
+                            ->whereHas('module.course', fn ($q) => $q->where('instructor_id', Auth::id()))
+                            ->where(function ($query) use ($record) {
+                                // Include lessons without a quiz...
+                                $query->whereDoesntHave('quiz');
+
+                                // ...OR include the currently selected lesson if we are editing an existing Quiz
+                                if ($record?->lesson_id) {
+                                    $query->orWhere('id', $record->lesson_id);
+                                }
+                            })
+                            ->with(['module', 'module.course'])
+                            ->get()
+                            ->mapWithKeys(fn ($l) => [$l->id => "{$l->module->title} → {$l->title}"]);
+                    })
                     ->required()
                     ->searchable(),
                 TextInput::make('title')->required()->maxLength(255),
