@@ -40,4 +40,8 @@ return [
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
+
+    'platform' => [
+        'fee_percent' => (int) env('PLATFORM_FEE_PERCENT', 20), // integer percent, e.g. 20 = 20%
+    ],
 ];

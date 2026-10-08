@@ -10,6 +10,7 @@ class CancelSubscriptionAction
     {
         $subscription->recognitionSlices()
             ->where('status', 'pending')
+            ->where('slice_date', '>=', now()->toDateString())
             ->update(['status' => 'voided', 'voided_at' => now()]);
 
         $subscription->update([

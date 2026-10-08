@@ -1,18 +1,16 @@
 <?php
-
 namespace App\Filament\Instructor\Resources\Courses\Pages;
-
 
 use App\Filament\Instructor\Resources\Courses\CourseResource;
 use App\Models\Course;
 use App\Models\LessonProgress;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord; // 1. Import Trait
 use Filament\Resources\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
 class ViewCourseProgress extends Page
 {
-     public Course $record;
-
+    use InteractsWithRecord; // 2. Use Trait
 
     protected static string $resource = CourseResource::class;
 
@@ -22,6 +20,7 @@ class ViewCourseProgress extends Page
 
     public function mount(int|string $record): void
     {
+        // Now resolveRecord() exists!
         $this->record = $this->resolveRecord($record);
 
         $this->record->loadMissing('modules.lessons');

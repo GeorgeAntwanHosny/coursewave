@@ -70,4 +70,14 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(LessonProgress::class, 'student_id');
     }
+
+        public function ledgerEntries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LedgerEntry::class, 'instructor_id');
+    }
+
+    public function balance(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(InstructorBalance::class, 'instructor_id');
+    }
 }
