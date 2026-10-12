@@ -7,15 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LedgerEntry extends Model
 {
-    // created_at represents the economic/event date (deterministic, used as
-    // the partition key), not Eloquent's usual "row touched" semantics —
-    // timestamps are set explicitly by the recognition action, never by
-    // Eloquent's own touch(). recorded_at is the true wall-clock audit field.
+    // created_at is the deterministic economic date (partition key), set
+    // explicitly — never by Eloquent. recorded_at is true insert time.
     public $timestamps = false;
 
     protected $fillable = [
         'instructor_id', 'entry_type', 'amount_cents', 'subscription_id',
-        'recognition_slice_id', 'idempotency_key', 'created_at', 'recorded_at',
+        'recognition_slice_id', 'payout_batch_id', 'idempotency_key', 'created_at', 'recorded_at',
     ];
 
     protected function casts(): array
@@ -36,5 +34,10 @@ class LedgerEntry extends Model
     public function recognitionSlice(): BelongsTo
     {
         return $this->belongsTo(RevenueRecognitionSlice::class, 'recognition_slice_id');
+    }
+
+    public function payoutBatch(): BelongsTo
+    {
+        return $this->belongsTo(PayoutBatch::class, 'payout_batch_id');
     }
 }

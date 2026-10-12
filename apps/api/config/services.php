@@ -39,9 +39,19 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        // Accounts v2 is requested per call via this header. Taken from Stripe's
+        // current docs; pin/update deliberately, never to a ".preview" version.
+        'v2_api_version' => env('STRIPE_V2_API_VERSION', '2026-09-30.endive'),
+        'connect_country' => env('STRIPE_CONNECT_COUNTRY', 'us'),
+        'connect_entity_type' => env('STRIPE_CONNECT_ENTITY_TYPE', 'individual'),
     ],
 
     'platform' => [
         'fee_percent' => (int) env('PLATFORM_FEE_PERCENT', 20), // integer percent, e.g. 20 = 20%
+    ],
+
+    'payouts' => [
+        'minimum_cents' => (int) env('PAYOUT_MINIMUM_CENTS', 1000),
+        'max_reconcile_attempts' => (int) env('PAYOUT_MAX_RECONCILE_ATTEMPTS', 5),
     ],
 ];

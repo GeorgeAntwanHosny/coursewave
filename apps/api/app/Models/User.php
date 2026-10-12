@@ -80,4 +80,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasOne(InstructorBalance::class, 'instructor_id');
     }
+
+    public function payoutAccount(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(InstructorPayoutAccount::class, 'instructor_id');
+    }
 }
