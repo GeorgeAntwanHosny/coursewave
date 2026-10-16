@@ -14,6 +14,17 @@ type Subscription = {
   ends_at: string | null;
   starts_at_human: string | null;
   ends_at_human: string | null;
+  // Only on /subscriptions/current: what cancelling right now would refund.
+  refundable_cents?: number;
+  refundable_human?: string;
+};
+
+type Refund = {
+  id: number;
+  amount_cents: number;
+  amount_human: string;
+  status: "pending" | "submitted" | "succeeded" | "failed" | "uncertain" | "reconciling";
+  reason: string;
 };
 
 export function useCheckout() {
@@ -70,5 +81,31 @@ export function useCurrentSubscription() {
       return data.data;
     },
     enabled: !!token,
+  });
+}
+
+export function useCancelSubscription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post<
+        ApiEnvelope<{ subscription: Subscription; refund: Refund | null }>
+      >("/subscriptions/current/cancel");
+      return data.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
+      queryClient.invalidateQueries({ queryKey: ["my-subscriptions"] });
+      // Course content is gated on an active subscription, so drop cached lessons too.
+      queryClient.invalidateQueries({ queryKey: ["learn-course"] });
+      toast.success(
+        data?.refund
+          ? `Subscription canceled. A refund of ${data.refund.amount_human} is being processed.`
+          : "Subscription canceled. There were no unused days to refund."
+      );
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message ?? "Couldn't cancel your subscription.");
+    },
   });
 }

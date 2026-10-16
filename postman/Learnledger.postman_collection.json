@@ -280,6 +280,19 @@
               "path": ["api", "learning", "quizzes", "1", "attempts"]
             }
           }
+        },
+        {
+          "name": "Cancel current subscription (refunds unused days)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/subscriptions/current/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "subscriptions", "current", "cancel"]
+            },
+            "description": "Cancels the active subscription, voids not-yet-elapsed days and queues a refund for them. The 'Current subscription' request now also returns refundable_cents / refundable_human."
+          }
         }
       ]
     }

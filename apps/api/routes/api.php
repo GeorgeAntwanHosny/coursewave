@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/subscriptions/confirm', [SubscriptionController::class, 'confirm']);
     Route::get('/subscriptions', [SubscriptionController::class, 'index']);
     Route::get('/subscriptions/current', [SubscriptionController::class, 'current']);
+    Route::post('/subscriptions/current/cancel', [SubscriptionController::class, 'cancelCurrent']);
 
     Route::middleware('subscription.active')->prefix('learning')->group(function () {
         Route::get('/courses/{slug}', [LearningController::class, 'courseTree']);

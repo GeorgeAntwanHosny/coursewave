@@ -20,6 +20,12 @@ class SubscriptionResource extends JsonResource
             'ends_at' => $this->ends_at?->toDateString(),
             'starts_at_human' => $this->starts_at?->format('F j, Y'),
             'ends_at_human' => $this->ends_at?->format('F j, Y'),
+            // Only present on /subscriptions/current: what cancelling right now would refund.
+            'refundable_cents' => $this->when(isset($this->refundable_cents), fn () => (int) $this->refundable_cents),
+            'refundable_human' => $this->when(
+                isset($this->refundable_cents),
+                fn () => '$' . number_format($this->refundable_cents / 100, 2)
+            ),
         ];
     }
 }

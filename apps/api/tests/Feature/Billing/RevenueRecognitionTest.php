@@ -294,6 +294,8 @@ class RevenueRecognitionTest extends TestCase
 
     public function test_cancel_subscription_does_not_void_elapsed_unrecognized_slices(): void
     {
+        \Illuminate\Support\Facades\Queue::fake(); // cancellation now queues a refund; this test never talks to a gateway
+
         // 5-day term that started 2 days ago: slices on today-2 and today-1
         // are elapsed but still pending (recognition hasn't caught up);
         // today, today+1, today+2 are not yet elapsed.

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Subscription extends Model
 {
@@ -34,5 +35,10 @@ class Subscription extends Model
     public function recognitionSlices(): HasMany
     {
         return $this->hasMany(RevenueRecognitionSlice::class);
+    }
+
+    public function refund(): HasOne
+    {
+        return $this->hasOne(Refund::class);
     }
 }

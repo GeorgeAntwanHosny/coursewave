@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Billing\CancelSubscriptionAction;
 use App\Actions\Billing\ConfirmSubscriptionAction;
 use App\Actions\Billing\InitiateCheckoutAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Billing\CheckoutRequest;
 use App\Http\Requests\Billing\ConfirmSubscriptionRequest;
+use App\Http\Resources\RefundResource;
 use App\Http\Resources\SubscriptionResource;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -65,9 +67,29 @@ class SubscriptionController extends Controller
             ->with('plan')
             ->first();
 
+        if ($subscription) {
+            $subscription->setAttribute('refundable_cents', CancelSubscriptionAction::refundableCents($subscription));
+        }
+
         return ApiResponse::success(
             $subscription ? new SubscriptionResource($subscription) : null,
             $subscription ? 'Active subscription found.' : 'No active subscription.'
         );
+    }
+
+    public function cancelCurrent(Request $request, CancelSubscriptionAction $action)
+    {
+        $subscription = $request->user()->subscriptions()->where('status', 'active')->first();
+
+        if (! $subscription) {
+            return ApiResponse::error('You have no active subscription to cancel.', null, 422);
+        }
+
+        $refund = $action->execute($subscription, 'student_cancel', $request->user()->id);
+
+        return ApiResponse::success([
+            'subscription' => new SubscriptionResource($subscription->fresh()->load('plan')),
+            'refund' => $refund ? new RefundResource($refund) : null,
+        ], 'Subscription canceled.');
     }
 }

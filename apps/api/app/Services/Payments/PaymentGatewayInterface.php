@@ -6,10 +6,12 @@ use App\Models\Plan;
 use App\Models\User;
 use App\Services\Payments\Exceptions\PayoutDeclinedException;
 use App\Services\Payments\Exceptions\PayoutUncertainException;
+use App\Services\Payments\Exceptions\RefundDeclinedException;
+use App\Services\Payments\Exceptions\RefundUncertainException;
 
 interface PaymentGatewayInterface
 {
-    /** A short, stable identifier — e.g. 'stripe'. Stored on subscriptions/webhook_events/payout_batches. */
+    /** A short, stable identifier — e.g. 'stripe'. Stored on subscriptions/webhook_events/payout_batches/refunds. */
     public function getProviderName(): string;
 
     // ---- Inbound ----
@@ -18,7 +20,6 @@ interface PaymentGatewayInterface
     public function retrieveCheckoutSession(string $sessionId): CheckoutSessionResult;
 
     // ---- Payout accounts ----
-    /** Creates the provider-side connected account for an instructor. */
     public function createPayoutAccount(User $instructor): PayoutAccountRef;
 
     public function createPayoutOnboardingLink(PayoutAccountRef $account, string $returnUrl, string $refreshUrl): string;
@@ -27,14 +28,22 @@ interface PaymentGatewayInterface
 
     // ---- Outbound transfers ----
     /**
-     * Must be idempotent on $idempotencyKey: retrying with the same key either
-     * creates the transfer once or returns the original result.
-     *
      * @throws PayoutDeclinedException  provider explicitly rejected it (no money moved)
      * @throws PayoutUncertainException outcome unknown (timeout, 5xx, connection loss)
      */
     public function createTransfer(string $accountId, int $amountCents, string $idempotencyKey): TransferResult;
 
-    /** Finds a transfer previously created with this idempotency key, or null if none exists. */
     public function findTransferByIdempotencyKey(string $idempotencyKey): ?TransferResult;
+
+    // ---- Refunds to students ----
+    /**
+     * Must be idempotent on $idempotencyKey (same key → the original refund, never a second one).
+     *
+     * @throws RefundDeclinedException  provider explicitly rejected it (no money moved)
+     * @throws RefundUncertainException outcome unknown (timeout, 5xx, connection loss)
+     */
+    public function createRefund(string $paymentId, int $amountCents, string $idempotencyKey): RefundResult;
+
+    /** Finds a refund previously created with this idempotency key against $paymentId, or null. */
+    public function findRefundByIdempotencyKey(string $paymentId, string $idempotencyKey): ?RefundResult;
 }

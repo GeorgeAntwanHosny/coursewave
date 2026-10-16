@@ -54,4 +54,8 @@ return [
         'minimum_cents' => (int) env('PAYOUT_MINIMUM_CENTS', 1000),
         'max_reconcile_attempts' => (int) env('PAYOUT_MAX_RECONCILE_ATTEMPTS', 5),
     ],
+
+    'refunds' => [
+        'max_reconcile_attempts' => (int) env('REFUND_MAX_RECONCILE_ATTEMPTS', 5),
+    ],
 ];

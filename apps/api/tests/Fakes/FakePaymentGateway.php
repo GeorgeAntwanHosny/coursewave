@@ -7,9 +7,12 @@ use App\Models\User;
 use App\Services\Payments\CheckoutSessionResult;
 use App\Services\Payments\Exceptions\PayoutDeclinedException;
 use App\Services\Payments\Exceptions\PayoutUncertainException;
+use App\Services\Payments\Exceptions\RefundDeclinedException;
+use App\Services\Payments\Exceptions\RefundUncertainException;
 use App\Services\Payments\PaymentGatewayInterface;
 use App\Services\Payments\PayoutAccountRef;
 use App\Services\Payments\PayoutAccountStatus;
+use App\Services\Payments\RefundResult;
 use App\Services\Payments\TransferResult;
 use Illuminate\Support\Str;
 
@@ -25,6 +28,12 @@ class FakePaymentGateway implements PaymentGatewayInterface
 
     /** @var array<string, TransferResult> idempotency key => transfer actually "created" at the provider */
     public static array $transfers = [];
+
+    /** success | decline | timeout_not_created | timeout_created */
+    public static string $refundMode = 'success';
+
+    /** @var array<string, RefundResult> idempotency key => refund actually "created" at the provider */
+    public static array $refunds = [];
 
     /** @var PayoutAccountRef[] refs the app passed for onboarding links / status checks, in order */
     public static array $refsSeen = [];
@@ -111,7 +120,7 @@ class FakePaymentGateway implements PaymentGatewayInterface
             case 'timeout_not_created':
                 throw new PayoutUncertainException('Request timed out.');
             case 'timeout_created':
-                self::$transfers[$idempotencyKey] = $result; // it DID land, we just never heard back
+                self::$transfers[$idempotencyKey] = $result;
                 throw new PayoutUncertainException('Request timed out.');
             default:
                 self::$transfers[$idempotencyKey] = $result;
@@ -125,12 +134,58 @@ class FakePaymentGateway implements PaymentGatewayInterface
         return self::$transfers[$idempotencyKey] ?? null;
     }
 
+    public function createRefund(string $paymentId, int $amountCents, string $idempotencyKey): RefundResult
+    {
+        // Mirrors real provider idempotency: same key → original refund, never a second one.
+        if (isset(self::$refunds[$idempotencyKey])) {
+            return self::$refunds[$idempotencyKey];
+        }
+
+        $id = 're_fake_' . Str::random(10);
+        $result = new RefundResult($id, $amountCents, $paymentId, 'succeeded', [
+            'id' => $id,
+            'object' => 'refund',
+            'amount' => $amountCents,
+            'currency' => 'usd',
+            'payment_intent' => $paymentId,
+            'status' => 'succeeded',
+            'metadata' => ['refund_key' => $idempotencyKey],
+        ], 'req_fake_' . Str::random(8));
+
+        switch (self::$refundMode) {
+            case 'decline':
+                throw new RefundDeclinedException(
+                    'Charge has already been refunded.',
+                    400,
+                    'req_fake_refund_decline',
+                    'charge_already_refunded',
+                    ['error' => ['code' => 'charge_already_refunded', 'type' => 'invalid_request_error']],
+                );
+            case 'timeout_not_created':
+                throw new RefundUncertainException('Request timed out.');
+            case 'timeout_created':
+                self::$refunds[$idempotencyKey] = $result; // it DID land, we just never heard back
+                throw new RefundUncertainException('Request timed out.');
+            default:
+                self::$refunds[$idempotencyKey] = $result;
+
+                return $result;
+        }
+    }
+
+    public function findRefundByIdempotencyKey(string $paymentId, string $idempotencyKey): ?RefundResult
+    {
+        return self::$refunds[$idempotencyKey] ?? null;
+    }
+
     public static function reset(): void
     {
         self::$paymentStatus = 'paid';
         self::$sessionAmounts = [];
         self::$transferMode = 'success';
         self::$transfers = [];
+        self::$refundMode = 'success';
+        self::$refunds = [];
         self::$refsSeen = [];
         self::$accountEnabled = true;
     }

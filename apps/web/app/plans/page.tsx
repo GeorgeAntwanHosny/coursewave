@@ -109,8 +109,8 @@ export default function PlansPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Switch to {switchTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your current plan ({currentSubscription?.plan.name}) will be canceled immediately. Any remaining
-              unused days on it are not refunded or carried over to the new plan.
+              Your current plan ({currentSubscription?.plan.name}) will be canceled immediately. Its unused days
+              are refunded to your original payment method, and the new plan is charged in full.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

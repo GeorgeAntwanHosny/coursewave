@@ -11,6 +11,8 @@ use Stripe\Checkout\Session;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\ApiErrorException;
 use Stripe\StripeClient;
+use App\Services\Payments\Exceptions\RefundDeclinedException;
+use App\Services\Payments\Exceptions\RefundUncertainException;
 
 class StripeGateway implements PaymentGatewayInterface
 {
@@ -280,5 +282,65 @@ class StripeGateway implements PaymentGatewayInterface
             customerId: $session->customer,
             paymentIntentId: is_string($session->payment_intent) ? $session->payment_intent : ($session->payment_intent->id ?? null),
         );
+    }
+
+    // ------------------------------------------------------------------
+    // Refunds to students
+    // ------------------------------------------------------------------
+
+    public function createRefund(string $paymentId, int $amountCents, string $idempotencyKey): RefundResult
+    {
+        try {
+            $refund = $this->client->refunds->create([
+                'payment_intent' => $paymentId,
+                'amount' => $amountCents,
+                'reason' => 'requested_by_customer',
+                // Stripe can't look a refund up by idempotency key, so the key is also
+                // stamped into metadata — reconciliation finds the refund through it.
+                'metadata' => ['refund_key' => $idempotencyKey],
+            ], ['idempotency_key' => $idempotencyKey]);
+        } catch (ApiConnectionException $e) {
+            throw new RefundUncertainException(
+                $e->getMessage(), null, $e->getRequestId(), null, $e->getJsonBody(), $e
+            );
+        } catch (ApiErrorException $e) {
+            $status = $e->getHttpStatus();
+            // 5xx / 429 / no status: Stripe may or may not have processed it → uncertain.
+            // Other 4xx: Stripe guarantees the request failed → explicit decline.
+            $class = ($status === null || $status >= 500 || $status === 429)
+                ? RefundUncertainException::class
+                : RefundDeclinedException::class;
+
+            throw new $class($e->getMessage(), $status, $e->getRequestId(), $e->getStripeCode(), $e->getJsonBody(), $e);
+        }
+
+        return new RefundResult(
+            $refund->id,
+            (int) $refund->amount,
+            $paymentId,
+            (string) $refund->status,
+            $refund->toArray(),
+            $this->requestIdFrom($refund),
+        );
+    }
+
+    public function findRefundByIdempotencyKey(string $paymentId, string $idempotencyKey): ?RefundResult
+    {
+        $list = $this->client->refunds->all(['payment_intent' => $paymentId, 'limit' => 100]);
+
+        foreach ($list->data as $refund) {
+            if (($refund->metadata['refund_key'] ?? null) === $idempotencyKey) {
+                return new RefundResult(
+                    $refund->id,
+                    (int) $refund->amount,
+                    $paymentId,
+                    (string) $refund->status,
+                    $refund->toArray(),
+                    $this->requestIdFrom($list),
+                );
+            }
+        }
+
+        return null;
     }
 }
