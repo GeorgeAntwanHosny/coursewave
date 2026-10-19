@@ -17,7 +17,7 @@ class CourseController extends Controller
             ->where('status', 'published')
             ->withCount('modules')
             ->with('instructor')
-            ->when($request->query('search'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
+            ->when($request->query('search'), fn ($q, $search) => $q->where('title', 'ilike', "%{$search}%"))
             ->latest()
             ->paginate(12);
 

@@ -295,6 +295,74 @@
           }
         }
       ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "List lesson comments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/learning/lessons/1/comments?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "learning", "lessons", "1", "comments"],
+              "query": [{ "key": "page", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Post comment (omit parent_id) or reply (set parent_id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Great lesson!\",\n  \"parent_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/learning/lessons/1/comments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "learning", "lessons", "1", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Edit own comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Edited text\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/learning/comments/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "learning", "comments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete comment (author / course instructor / admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/learning/comments/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "learning", "comments", "1"]
+            }
+          }
+        }
+      ]
     }
   ],
   "variable": [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCourses } from "@/hooks/use-courses";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,17 @@ import Image from "next/image";
 
 export default function CoursesPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useCourses(search);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data, isLoading, isError } = useCourses(debouncedSearch);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -50,7 +60,13 @@ export default function CoursesPage() {
             <Link key={course.id} href={`/courses/${course.slug}`}>
               <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
                 {course.thumbnail_url ? (
-                  <Image src={course.thumbnail_url} alt={course.title} className="h-40 w-full object-cover" />
+                  <Image
+                    src={course.thumbnail_url}
+                    alt={course.title}
+                    width={400}
+                    height={160}
+                    className="h-40 w-full object-cover"
+                  />
                 ) : (
                   <div className="flex h-40 w-full items-center justify-center bg-muted text-muted-foreground">
                     No image

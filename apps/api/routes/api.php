@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\LearningController;
 use App\Http\Controllers\Api\PlanController;
@@ -20,7 +21,6 @@ Route::get('/ping', function (Request $request) {
         'time' => now()->toIso8601String(),
     ]);
 });
-
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -53,5 +53,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
         Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
         Route::get('/quizzes/{quiz}/attempts', [QuizController::class, 'attempts']);
+    });
+
+    // Comments are authorized by CommentPolicy (active subscription, course instructor or admin),
+    // not by the subscription middleware, so a course's instructor can reply without subscribing.
+    Route::prefix('learning')->group(function () {
+        Route::get('/lessons/{lesson}/comments', [CommentController::class, 'index']);
+        Route::post('/lessons/{lesson}/comments', [CommentController::class, 'store'])->middleware('throttle:20,1');
+        Route::patch('/comments/{comment}', [CommentController::class, 'update'])->middleware('throttle:20,1');
+        Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     });
 });

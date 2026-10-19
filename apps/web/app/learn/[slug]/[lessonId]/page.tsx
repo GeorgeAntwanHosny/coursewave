@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useLesson, useRecordProgress } from "@/hooks/use-learning";
+import { LessonComments } from "@/components/learn/lesson-comments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,6 +172,8 @@ export default function LessonPage() {
           </CardContent>
         </Card>
       )}
+
+      <LessonComments key={lesson.id} lessonId={lesson.id} />
 
       <div className="mt-8 flex items-center justify-between">
         {lesson.previous_lesson_id ? (
