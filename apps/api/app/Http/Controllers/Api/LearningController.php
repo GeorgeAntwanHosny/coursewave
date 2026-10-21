@@ -82,7 +82,7 @@ class LearningController extends Controller
         return ApiResponse::success(new LessonLearnResource($lesson), 'Lesson retrieved.');
     }
 
-    public function recordProgress(RecordProgressRequest $request, Lesson $lesson, \App\Actions\Learning\RecordLessonProgressAction $action)
+    public function recordProgress(RecordProgressRequest $request, Lesson $lesson, RecordLessonProgressAction $action)
     {
         $lesson->loadMissing('module.course');
 
@@ -95,6 +95,8 @@ class LearningController extends Controller
         return ApiResponse::success([
             'status' => $progress->status,
             'watched_seconds' => $progress->watched_seconds,
+            // True only on the single request that completed the course and created the certificate.
+            'certificate_issued' => (bool) $progress->getAttribute('certificate_issued'),
         ], 'Progress recorded.');
     }
 }

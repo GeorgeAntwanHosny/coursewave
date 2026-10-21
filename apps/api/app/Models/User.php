@@ -85,4 +85,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasOne(InstructorPayoutAccount::class, 'instructor_id');
     }
+
+    public function certificates(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Certificate::class, 'student_id');
+    }
 }

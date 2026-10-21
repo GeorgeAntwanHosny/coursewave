@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Award } from "lucide-react";
 import { useCourseLearn } from "@/hooks/use-learning";
+import { useMyCertificates } from "@/hooks/use-certificates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 export default function CourseLearnPage() {
   const params = useParams<{ slug: string }>();
   const { data, isLoading, isError, error } = useCourseLearn(params.slug);
+  const { data: certificates } = useMyCertificates();
 
   if (isLoading) {
     return (
@@ -48,6 +52,7 @@ export default function CourseLearnPage() {
   const { course, completion_percent } = data;
   const firstLesson = course.modules[0]?.lessons[0];
   const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
+  const certificate = certificates?.find((c) => c.course_slug === course.slug);
 
   return (
     <div className="space-y-6">
@@ -55,6 +60,25 @@ export default function CourseLearnPage() {
         <h1 className="text-2xl font-semibold sm:text-3xl">{course.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">By {course.instructor_name}</p>
       </div>
+
+      {certificate && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Award className="h-5 w-5 shrink-0 text-primary" />
+              <div>
+                <p className="font-medium">You completed this course</p>
+                <p className="text-sm text-muted-foreground">Certificate issued {certificate.issued_at_human}.</p>
+              </div>
+            </div>
+            <Link href="/certificates">
+              <Button size="sm" className="w-full sm:w-auto">
+                View certificate
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">

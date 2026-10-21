@@ -42,6 +42,11 @@ return [
             'root' => storage_path('app/livewire-tmp'),
             'throw' => false,
         ],
+        'certificates' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/certificates'),
+            'throw' => false,
+        ],
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiEnvelope } from "@/lib/api-client";
+import { toast } from "sonner";
 
 type LessonSummary = {
   id: number;
@@ -59,15 +60,19 @@ export function useRecordProgress(lessonId: number | null) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { watched_seconds?: number; completed?: boolean }) => {
-      const { data } = await apiClient.post<ApiEnvelope<{ status: string; watched_seconds: number }>>(
-        `/learning/lessons/${lessonId}/progress`,
-        payload
-      );
+      const { data } = await apiClient.post<
+        ApiEnvelope<{ status: string; watched_seconds: number; certificate_issued?: boolean }>
+      >(`/learning/lessons/${lessonId}/progress`, payload);
       return data.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["learn-lesson", lessonId] });
       queryClient.invalidateQueries({ queryKey: ["learn-course"] });
+
+      if (data?.certificate_issued) {
+        queryClient.invalidateQueries({ queryKey: ["certificates"] });
+        toast.success("🎉 Course completed! Your certificate is being prepared — find it under Certificates.");
+      }
     },
   });
 }

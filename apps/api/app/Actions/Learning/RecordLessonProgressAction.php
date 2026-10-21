@@ -41,7 +41,7 @@ class RecordLessonProgressAction
             $engagementSeconds = $this->estimateReadingSeconds($lesson);
         }
 
-        return DB::transaction(function () use ($student, $lesson, $course, $subscription, $engagementSeconds, $completed, $watchedSeconds) {
+        $progress = DB::transaction(function () use ($student, $lesson, $course, $subscription, $engagementSeconds, $completed, $watchedSeconds) {
             if ($engagementSeconds > 0 || $completed) {
                 ConsumptionEvent::create([
                     'subscription_id' => $subscription->id,
@@ -78,6 +78,24 @@ class RecordLessonProgressAction
 
             return $progress;
         });
+
+        // Phase 9: a completion event may finish the course. Issued AFTER the progress
+        // transaction, and a failure here must never fail the student's progress save —
+        // `certificates:sync` picks up anything missed.
+        $certificateIssued = false;
+
+        if ($completed) {
+            try {
+                $certificate = app(IssueCertificateAction::class)->execute($student, $course);
+                $certificateIssued = (bool) $certificate?->wasRecentlyCreated;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        $progress->setAttribute('certificate_issued', $certificateIssued);
+
+        return $progress;
     }
 
     protected function estimateReadingSeconds(Lesson $lesson): int

@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\DevCertificateToolsController;
 use App\Http\Controllers\Api\LearningController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\QuizController;
@@ -21,6 +23,7 @@ Route::get('/ping', function (Request $request) {
         'time' => now()->toIso8601String(),
     ]);
 });
+
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -31,6 +34,9 @@ Route::get('/courses/{slug}', [CourseController::class, 'show']);
 
 // Public plans
 Route::get('/plans', [PlanController::class, 'index']);
+
+// Public certificate verification (throttled; returns only what is printed on the certificate)
+Route::get('/certificates/verify/{number}', [CertificateController::class, 'verify'])->middleware('throttle:30,1');
 
 // Stripe webhook — public, signature-verified internally, not session/token authenticated
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
@@ -44,6 +50,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/subscriptions', [SubscriptionController::class, 'index']);
     Route::get('/subscriptions/current', [SubscriptionController::class, 'current']);
     Route::post('/subscriptions/current/cancel', [SubscriptionController::class, 'cancelCurrent']);
+
+    // A student keeps their certificates even after a subscription ends.
+    Route::get('/certificates', [CertificateController::class, 'index']);
+    Route::get('/certificates/{id}/download', [CertificateController::class, 'download'])->whereNumber('id');
 
     Route::middleware('subscription.active')->prefix('learning')->group(function () {
         Route::get('/courses/{slug}', [LearningController::class, 'courseTree']);
@@ -63,4 +73,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/comments/{comment}', [CommentController::class, 'update'])->middleware('throttle:20,1');
         Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     });
+
+
+    // LOCAL/TESTING ONLY — registered only in those environments, and the controller
+    // re-checks the environment, so a cached route file can't expose it in production.
+    if (app()->environment(['local', 'testing'])) {
+        Route::post('/dev/complete-courses', [DevCertificateToolsController::class, 'completeCourses']);
+        Route::delete('/dev/reset-learning', [DevCertificateToolsController::class, 'reset']);
+    }
 });
