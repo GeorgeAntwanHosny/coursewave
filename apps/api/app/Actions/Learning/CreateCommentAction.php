@@ -5,6 +5,8 @@ namespace App\Actions\Learning;
 use App\Models\Comment;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Notifications\CommentReplyNotification;
+use App\Support\SafeNotify;
 use Illuminate\Validation\ValidationException;
 
 class CreateCommentAction
@@ -12,10 +14,13 @@ class CreateCommentAction
     /**
      * The caller is responsible for authorization (CommentPolicy::create). This
      * action enforces the thread rules: a reply must target a live, top-level
-     * comment on the SAME lesson, so threads stay two levels deep.
+     * comment on the SAME lesson, so threads stay two levels deep. A reply notifies
+     * the parent comment's author (never yourself).
      */
     public function execute(User $author, Lesson $lesson, string $body, ?int $parentId = null): Comment
     {
+        $parent = null;
+
         if ($parentId !== null) {
             $parent = Comment::forLesson($lesson)->whereKey($parentId)->first(); // soft-deleted rows are excluded
 
@@ -40,7 +45,13 @@ class CreateCommentAction
             'body' => trim($body),
         ]);
 
-        // Phase 10 hook: notify the parent comment's author of the reply (after commit).
+        if ($parent && $parent->user_id !== $author->id) {
+            $parent->loadMissing('user');
+
+            if ($parent->user) {
+                SafeNotify::send($parent->user, CommentReplyNotification::make($comment, $lesson, $author));
+            }
+        }
 
         return $comment;
     }

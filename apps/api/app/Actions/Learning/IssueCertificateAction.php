@@ -8,6 +8,8 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\User;
+use App\Notifications\CertificateIssuedNotification;
+use App\Support\SafeNotify;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -20,6 +22,7 @@ class IssueCertificateAction
      * (wasRecentlyCreated = true), or null when the course isn't complete.
      *
      * Quiz attempts deliberately do not count: course completion is lesson completion.
+     * The student is notified only by the call that actually created the certificate.
      */
     public function execute(User $student, Course $course): ?Certificate
     {
@@ -49,6 +52,7 @@ class IssueCertificateAction
                 ]));
 
                 GenerateCertificatePdfJob::dispatch($certificate->id)->afterCommit();
+                SafeNotify::send($student, CertificateIssuedNotification::make($certificate));
 
                 return $certificate;
             } catch (UniqueConstraintViolationException $e) {

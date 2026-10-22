@@ -4,6 +4,8 @@ namespace App\Actions\Billing;
 
 use App\Jobs\ReconcilePayoutBatchJob;
 use App\Models\PayoutBatch;
+use App\Notifications\PayoutProcessedNotification;
+use App\Support\SafeNotify;
 use Illuminate\Support\Facades\DB;
 
 class FinalizePayoutBatchAction
@@ -14,15 +16,16 @@ class FinalizePayoutBatchAction
      * The ONLY place a payout ledger entry is written. Same transaction as the
      * status change (convention #3). The paid_cents projection moves only when
      * the ledger insert genuinely inserted a row (convention #27), so calling
-     * this twice is a no-op.
+     * this twice is a no-op. The instructor is notified once, after the
+     * transaction has committed, and a notification failure never affects the money.
      */
     public function markSucceeded(int $batchId, string $providerTransferId): void
     {
-        DB::transaction(function () use ($batchId, $providerTransferId) {
+        $justSucceeded = DB::transaction(function () use ($batchId, $providerTransferId) {
             $batch = PayoutBatch::whereKey($batchId)->lockForUpdate()->first();
 
             if (! $batch || ! in_array($batch->status, self::UNRESOLVED, true)) {
-                return; // already succeeded/failed, or not yet submitted
+                return false; // already succeeded/failed, or not yet submitted
             }
 
             $batch->update([
@@ -55,8 +58,16 @@ class FinalizePayoutBatchAction
                 );
             }
 
-            // Phase 10 hook: dispatch the "payout processed" notification here (after commit).
+            return true;
         });
+
+        if ($justSucceeded) {
+            $batch = PayoutBatch::with('instructor')->find($batchId);
+
+            if ($batch?->instructor) {
+                SafeNotify::send($batch->instructor, PayoutProcessedNotification::make($batch));
+            }
+        }
     }
 
     /** Provider explicitly declined. No ledger entry — the amount stays owed and rolls into the next run. */

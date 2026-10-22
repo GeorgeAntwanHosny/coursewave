@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuthStore } from "@/stores/auth-store";
 import { useLogout } from "@/hooks/use-auth";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
@@ -50,10 +51,12 @@ export function Navbar() {
               </Link>
             </>
           )}
+          <NotificationBell />
           <ThemeToggle />
         </nav>
 
         <div className="flex items-center gap-2 md:hidden">
+          <NotificationBell />
           <ThemeToggle />
           <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label="Toggle menu">
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

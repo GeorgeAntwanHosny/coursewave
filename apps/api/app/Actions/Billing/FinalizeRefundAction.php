@@ -4,6 +4,8 @@ namespace App\Actions\Billing;
 
 use App\Jobs\ReconcileRefundJob;
 use App\Models\Refund;
+use App\Notifications\RefundProcessedNotification;
+use App\Support\SafeNotify;
 use Illuminate\Support\Facades\DB;
 
 class FinalizeRefundAction
@@ -13,15 +15,16 @@ class FinalizeRefundAction
     /**
      * Records a confirmed refund. Deliberately writes NO ledger entry: the refunded
      * days were voided before they were ever recognized, so no instructor accrual or
-     * platform fee exists for them (README §7). Safe to call twice.
+     * platform fee exists for them (README §7). Safe to call twice; the student is
+     * notified once, after the transaction has committed.
      */
     public function markSucceeded(int $refundId, string $providerRefundId): void
     {
-        DB::transaction(function () use ($refundId, $providerRefundId) {
+        $justSucceeded = DB::transaction(function () use ($refundId, $providerRefundId) {
             $refund = Refund::whereKey($refundId)->lockForUpdate()->first();
 
             if (! $refund || ! in_array($refund->status, self::UNRESOLVED, true)) {
-                return;
+                return false;
             }
 
             $refund->update([
@@ -31,7 +34,16 @@ class FinalizeRefundAction
                 'completed_at' => now(),
             ]);
 
+            return true;
         });
+
+        if ($justSucceeded) {
+            $refund = Refund::with('student')->find($refundId);
+
+            if ($refund?->student) {
+                SafeNotify::send($refund->student, RefundProcessedNotification::make($refund));
+            }
+        }
     }
 
     /** Provider explicitly declined. Terminal: an admin resolves it in the provider dashboard. */

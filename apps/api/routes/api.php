@@ -6,11 +6,12 @@ use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\DevCertificateToolsController;
 use App\Http\Controllers\Api\LearningController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\SubscriptionController;
-use Illuminate\Http\Request;
+use Illuminate\Broadcasting\BroadcastController;
 use Illuminate\Support\Facades\Route;
 
 // Simple connection-test endpoint for the Next.js frontend.
@@ -45,6 +46,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
+    // Private-channel authorization for Laravel Echo over a Sanctum bearer token
+    // (the Next.js app has no session). Channel rules live in routes/channels.php.
+    Route::post('/broadcasting/auth', [BroadcastController::class, 'authenticate']);
+
+    // Notifications: any signed-in user, no subscription needed (instructors and admins get them too).
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->whereUuid('id');
+
     Route::post('/subscriptions/checkout', [SubscriptionController::class, 'checkout']);
     Route::post('/subscriptions/confirm', [SubscriptionController::class, 'confirm']);
     Route::get('/subscriptions', [SubscriptionController::class, 'index']);
@@ -73,7 +84,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/comments/{comment}', [CommentController::class, 'update'])->middleware('throttle:20,1');
         Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     });
-
 
     // LOCAL/TESTING ONLY — registered only in those environments, and the controller
     // re-checks the environment, so a cached route file can't expose it in production.
