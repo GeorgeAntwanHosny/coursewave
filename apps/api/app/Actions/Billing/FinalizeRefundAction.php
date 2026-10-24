@@ -4,6 +4,7 @@ namespace App\Actions\Billing;
 
 use App\Jobs\ReconcileRefundJob;
 use App\Models\Refund;
+use App\Notifications\AdminBillingNotification;
 use App\Notifications\RefundProcessedNotification;
 use App\Support\SafeNotify;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,8 @@ class FinalizeRefundAction
     /**
      * Records a confirmed refund. Deliberately writes NO ledger entry: the refunded
      * days were voided before they were ever recognized, so no instructor accrual or
-     * platform fee exists for them (README §7). Safe to call twice; the student is
-     * notified once, after the transaction has committed.
+     * platform fee exists. Safe to call twice; the student and the
+     * admins are notified once, after the transaction has committed.
      */
     public function markSucceeded(int $refundId, string $providerRefundId): void
     {
@@ -42,6 +43,7 @@ class FinalizeRefundAction
 
             if ($refund?->student) {
                 SafeNotify::send($refund->student, RefundProcessedNotification::make($refund));
+                SafeNotify::toAdmins(AdminBillingNotification::refundProcessed($refund));
             }
         }
     }
@@ -49,11 +51,11 @@ class FinalizeRefundAction
     /** Provider explicitly declined. Terminal: an admin resolves it in the provider dashboard. */
     public function markFailed(int $refundId, string $reason): void
     {
-        DB::transaction(function () use ($refundId, $reason) {
+        $justFailed = DB::transaction(function () use ($refundId, $reason) {
             $refund = Refund::whereKey($refundId)->lockForUpdate()->first();
 
             if (! $refund || ! in_array($refund->status, self::UNRESOLVED, true)) {
-                return;
+                return false;
             }
 
             $refund->update([
@@ -61,7 +63,18 @@ class FinalizeRefundAction
                 'failure_reason' => mb_substr($reason, 0, 500),
                 'completed_at' => now(),
             ]);
+
+            return true;
         });
+
+        if ($justFailed) {
+            $refund = Refund::with('student')->find($refundId);
+
+            if ($refund?->student) {
+                // Admins only: the student isn't told a refund failed until a human has resolved it.
+                SafeNotify::toAdmins(AdminBillingNotification::refundFailed($refund, mb_substr($reason, 0, 200)));
+            }
+        }
     }
 
     /** Outcome unknown. Never failed, never succeeded — optionally schedule reconciliation with backoff. */
@@ -83,9 +96,21 @@ class FinalizeRefundAction
             return $refund->uncertain_count;
         });
 
-        if ($scheduleReconcile && $count !== null && $count <= (int) config('services.refunds.max_reconcile_attempts')) {
-            ReconcileRefundJob::dispatch($refundId)->delay(now()->addMinutes(min(2 ** $count, 60)));
+        if ($count === null) {
+            return;
         }
-        // Past the max it stays 'uncertain' for an admin — it is never auto-failed.
+
+        if ($scheduleReconcile && $count <= (int) config('services.refunds.max_reconcile_attempts')) {
+            ReconcileRefundJob::dispatch($refundId)->delay(now()->addMinutes(min(2 ** $count, 60)));
+
+            return;
+        }
+
+        // Out of automatic attempts (or the idempotency window expired): a human has to look.
+        $refund = Refund::with('student')->find($refundId);
+
+        if ($refund?->student) {
+            SafeNotify::toAdmins(AdminBillingNotification::refundStuck($refund));
+        }
     }
 }

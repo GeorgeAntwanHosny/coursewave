@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Banknote, Bell, CheckCheck, MessageSquare, Receipt } from "lucide-react";
+import { Award, Banknote, Bell, CheckCheck, CreditCard, MessageSquare, Receipt } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   NotificationItem,
@@ -17,20 +17,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
+// Matched by substring so the instructor and admin kinds (payout_failed, admin_refund_stuck, ...) get the right icon.
 function KindIcon({ kind }: { kind: string }) {
   const className = "h-4 w-4";
-  switch (kind) {
-    case "payout_processed":
-      return <Banknote className={className} />;
-    case "refund_processed":
-      return <Receipt className={className} />;
-    case "comment_reply":
-      return <MessageSquare className={className} />;
-    case "certificate_issued":
-      return <Award className={className} />;
-    default:
-      return <Bell className={className} />;
-  }
+
+  if (kind.includes("payout")) return <Banknote className={className} />;
+  if (kind.includes("refund")) return <Receipt className={className} />;
+  if (kind.includes("comment")) return <MessageSquare className={className} />;
+  if (kind.includes("certificate") || kind.includes("course_completed")) return <Award className={className} />;
+  if (kind.includes("subscription")) return <CreditCard className={className} />;
+
+  return <Bell className={className} />;
 }
 
 export function NotificationBell() {

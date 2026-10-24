@@ -3,7 +3,9 @@
 namespace App\Actions\Billing;
 
 use App\Models\Subscription;
+use App\Notifications\AdminBillingNotification;
 use App\Services\Payments\PaymentGatewayInterface;
+use App\Support\SafeNotify;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -15,6 +17,11 @@ class ConfirmSubscriptionAction
         protected CancelSubscriptionAction $cancelSubscription,
     ) {}
 
+    /**
+     * Called from the frontend's post-redirect call AND the authoritative webhook, in either
+     * order, any number of times. The status === 'active' early return is the idempotency
+     * guard, which also means admins are notified only by the call that actually activated it.
+     */
     public function execute(string $providerCheckoutId, ?int $expectedStudentId = null): Subscription
     {
         $subscription = Subscription::where('provider_checkout_id', $providerCheckoutId)
@@ -45,7 +52,7 @@ class ConfirmSubscriptionAction
             ]);
         }
 
-        return DB::transaction(function () use ($subscription, $session) {
+        [$activated, $switchedFrom] = DB::transaction(function () use ($subscription, $session) {
             // Cancel any other active subscription for this student FIRST —
             // the partial unique index requires status to clear 'active'
             // before this one can take it. Order matters here.
@@ -55,7 +62,10 @@ class ConfirmSubscriptionAction
                 ->lockForUpdate()
                 ->first();
 
+            $switchedFrom = null;
+
             if ($priorActive) {
+                $switchedFrom = $priorActive->plan?->name;
                 $this->cancelSubscription->execute($priorActive);
             }
 
@@ -69,7 +79,13 @@ class ConfirmSubscriptionAction
 
             $this->generateSlices->execute($subscription->fresh());
 
-            return $subscription->fresh();
+            return [$subscription->fresh(), $switchedFrom];
         });
+
+        if (config('coursewave.notifications.admin_new_subscription')) {
+            SafeNotify::toAdmins(AdminBillingNotification::newSubscription($activated, $switchedFrom));
+        }
+
+        return $activated;
     }
 }

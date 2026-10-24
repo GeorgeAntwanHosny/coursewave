@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Notifications\CommentReplyNotification;
+use App\Notifications\InstructorNotification;
 use App\Support\SafeNotify;
 use Illuminate\Validation\ValidationException;
 
@@ -14,8 +15,11 @@ class CreateCommentAction
     /**
      * The caller is responsible for authorization (CommentPolicy::create). This
      * action enforces the thread rules: a reply must target a live, top-level
-     * comment on the SAME lesson, so threads stay two levels deep. A reply notifies
-     * the parent comment's author (never yourself).
+     * comment on the SAME lesson, so threads stay two levels deep.
+     *
+     * Notifications: a reply notifies the parent comment's author (never yourself),
+     * and any comment by someone else notifies the lesson's instructor — unless the
+     * instructor is the parent's author, who already got the reply notification.
      */
     public function execute(User $author, Lesson $lesson, string $body, ?int $parentId = null): Comment
     {
@@ -51,6 +55,14 @@ class CreateCommentAction
             if ($parent->user) {
                 SafeNotify::send($parent->user, CommentReplyNotification::make($comment, $lesson, $author));
             }
+        }
+
+        $lesson->loadMissing('module.course.instructor');
+        $instructor = $lesson->module->course->instructor;
+        $alreadyToldAsParentAuthor = $parent && $parent->user_id === $instructor?->id;
+
+        if ($instructor && $instructor->id !== $author->id && ! $alreadyToldAsParentAuthor) {
+            SafeNotify::send($instructor, InstructorNotification::lessonComment($comment, $lesson, $author, $parent !== null));
         }
 
         return $comment;

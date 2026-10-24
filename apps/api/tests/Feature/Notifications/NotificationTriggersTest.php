@@ -16,6 +16,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\CertificateIssuedNotification;
 use App\Notifications\CommentReplyNotification;
+use App\Notifications\InstructorNotification;
 use App\Notifications\PayoutProcessedNotification;
 use App\Notifications\RefundProcessedNotification;
 use App\Notifications\SystemTestNotification;
@@ -101,11 +102,11 @@ class NotificationTriggersTest extends TestCase
         });
     }
 
-    public function test_replying_to_yourself_or_posting_top_level_notifies_nobody(): void
+    public function test_replying_to_yourself_or_posting_top_level_sends_no_reply_notification(): void
     {
         [, $lessons] = $this->courseWithLessons(1);
         $lesson = $lessons->first();
-        [$student, $token] = $this->subscribedStudent();
+        [, $token] = $this->subscribedStudent();
 
         $this->actingWith($token)->postJson("/api/learning/lessons/{$lesson->id}/comments", ['body' => 'Top level'])
             ->assertStatus(201);
@@ -115,7 +116,8 @@ class NotificationTriggersTest extends TestCase
             'body' => 'Replying to myself', 'parent_id' => $parentId,
         ])->assertStatus(201);
 
-        Notification::assertNothingSent();
+        // The lesson's instructor hears about both (see NotificationAudienceTest); nobody gets a "reply to you".
+        Notification::assertNothingSentTo(User::role('student')->get()->all(), CommentReplyNotification::class);
     }
 
     // ---------------------------------------------------------------- certificates
@@ -126,7 +128,7 @@ class NotificationTriggersTest extends TestCase
         [$student, $token] = $this->subscribedStudent();
 
         $this->actingWith($token)->postJson("/api/learning/lessons/{$lessons[0]->id}/progress", ['completed' => true]);
-        Notification::assertNothingSent(); // course not finished yet
+        Notification::assertNotSentTo($student, CertificateIssuedNotification::class); // course not finished yet
 
         $this->actingWith($token)->postJson("/api/learning/lessons/{$lessons[1]->id}/progress", ['completed' => true]);
         $this->actingWith($token)->postJson("/api/learning/lessons/{$lessons[1]->id}/progress", ['completed' => true]); // again
@@ -185,7 +187,8 @@ class NotificationTriggersTest extends TestCase
 
         app(FinalizePayoutBatchAction::class)->markFailed($batch->id, 'Declined');
 
-        Notification::assertNothingSent();
+        Notification::assertNotSentTo($instructor, PayoutProcessedNotification::class);
+        Notification::assertSentTo($instructor, InstructorNotification::class, fn ($n) => $n->kind === 'payout_failed');
     }
 
     public function test_a_successful_refund_notifies_the_student_once(): void
@@ -215,16 +218,19 @@ class NotificationTriggersTest extends TestCase
 
     // ---------------------------------------------------------------- shape + safety
 
-    public function test_notifications_use_the_database_and_broadcast_channels_with_a_flat_payload(): void
+    public function test_notifications_use_the_database_and_broadcast_channels_with_flat_fields_and_filament_format(): void
     {
         $user = User::factory()->create();
-        $notification = SystemTestNotification::make('Hi', 'There', '/certificates');
+        $payload = SystemTestNotification::make('Hi', 'There', '/certificates');
 
-        $this->assertEquals(['database', 'broadcast'], $notification->via($user));
-        $this->assertEquals(
-            ['kind' => 'system_test', 'title' => 'Hi', 'body' => 'There', 'url' => '/certificates'],
-            $notification->toArray($user)
-        );
+        $this->assertEquals(['database', 'broadcast'], $payload->via($user));
+
+        $data = $payload->toArray($user);
+        $this->assertEquals('system_test', $data['kind']);
+        $this->assertEquals('Hi', $data['title']);
+        $this->assertEquals('There', $data['body']);
+        $this->assertEquals('/certificates', $data['url']);
+        $this->assertEquals('filament', $data['format']); // what Filament's bell filters on
     }
 
     public function test_a_failing_notification_never_reaches_the_caller(): void

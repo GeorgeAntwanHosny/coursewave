@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\User;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 class SafeNotify
 {
@@ -15,6 +17,20 @@ class SafeNotify
     {
         try {
             $notifiable->notify($notification);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** Sends the notification to every user with the admin role, with the same never-throws guarantee. */
+    public static function toAdmins(Notification $notification): void
+    {
+        try {
+            $admins = User::role('admin')->get();
+
+            if ($admins->isNotEmpty()) {
+                NotificationFacade::send($admins, $notification);
+            }
         } catch (\Throwable $e) {
             report($e);
         }

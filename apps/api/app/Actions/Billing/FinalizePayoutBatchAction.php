@@ -4,6 +4,8 @@ namespace App\Actions\Billing;
 
 use App\Jobs\ReconcilePayoutBatchJob;
 use App\Models\PayoutBatch;
+use App\Notifications\AdminBillingNotification;
+use App\Notifications\InstructorNotification;
 use App\Notifications\PayoutProcessedNotification;
 use App\Support\SafeNotify;
 use Illuminate\Support\Facades\DB;
@@ -16,8 +18,8 @@ class FinalizePayoutBatchAction
      * The ONLY place a payout ledger entry is written. Same transaction as the
      * status change (convention #3). The paid_cents projection moves only when
      * the ledger insert genuinely inserted a row (convention #27), so calling
-     * this twice is a no-op. The instructor is notified once, after the
-     * transaction has committed, and a notification failure never affects the money.
+     * this twice is a no-op. The instructor and the admins are notified once,
+     * after the transaction has committed, and a notification failure never affects the money.
      */
     public function markSucceeded(int $batchId, string $providerTransferId): void
     {
@@ -66,6 +68,7 @@ class FinalizePayoutBatchAction
 
             if ($batch?->instructor) {
                 SafeNotify::send($batch->instructor, PayoutProcessedNotification::make($batch));
+                SafeNotify::toAdmins(AdminBillingNotification::payoutProcessed($batch));
             }
         }
     }
@@ -73,11 +76,11 @@ class FinalizePayoutBatchAction
     /** Provider explicitly declined. No ledger entry — the amount stays owed and rolls into the next run. */
     public function markFailed(int $batchId, string $reason): void
     {
-        DB::transaction(function () use ($batchId, $reason) {
+        $justFailed = DB::transaction(function () use ($batchId, $reason) {
             $batch = PayoutBatch::whereKey($batchId)->lockForUpdate()->first();
 
             if (! $batch || ! in_array($batch->status, self::UNRESOLVED, true)) {
-                return;
+                return false;
             }
 
             $batch->update([
@@ -85,7 +88,19 @@ class FinalizePayoutBatchAction
                 'failure_reason' => mb_substr($reason, 0, 500),
                 'completed_at' => now(),
             ]);
+
+            return true;
         });
+
+        if ($justFailed) {
+            $batch = PayoutBatch::with('instructor')->find($batchId);
+
+            if ($batch?->instructor) {
+                // The instructor gets a generic message; the provider's reason goes to admins only.
+                SafeNotify::send($batch->instructor, InstructorNotification::payoutFailed($batch));
+                SafeNotify::toAdmins(AdminBillingNotification::payoutFailed($batch, mb_substr($reason, 0, 200)));
+            }
+        }
     }
 
     /** Outcome unknown. Never failed, never succeeded — schedule reconciliation with backoff. */
@@ -107,9 +122,21 @@ class FinalizePayoutBatchAction
             return $batch->uncertain_count;
         });
 
-        if ($count !== null && $count <= (int) config('services.payouts.max_reconcile_attempts')) {
-            ReconcilePayoutBatchJob::dispatch($batchId)->delay(now()->addMinutes(min(2 ** $count, 60)));
+        if ($count === null) {
+            return;
         }
-        // Past the max it stays 'uncertain' for an admin — it is never auto-failed.
+
+        if ($count <= (int) config('services.payouts.max_reconcile_attempts')) {
+            ReconcilePayoutBatchJob::dispatch($batchId)->delay(now()->addMinutes(min(2 ** $count, 60)));
+
+            return;
+        }
+
+        // Out of automatic attempts: it stays 'uncertain' (never auto-failed) and a human has to look.
+        $batch = PayoutBatch::with('instructor')->find($batchId);
+
+        if ($batch?->instructor) {
+            SafeNotify::toAdmins(AdminBillingNotification::payoutStuck($batch, $count));
+        }
     }
 }

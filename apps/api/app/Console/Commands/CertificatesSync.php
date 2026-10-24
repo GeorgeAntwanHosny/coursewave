@@ -36,7 +36,8 @@ class CertificatesSync extends Command
                     return;
                 }
 
-                $certificate = $issue->execute($student, $course);
+                // Students are told about their certificate; instructors are not flooded with history.
+                $certificate = $issue->execute($student, $course, notifyInstructor: false);
 
                 if ($certificate?->wasRecentlyCreated) {
                     $issued++;

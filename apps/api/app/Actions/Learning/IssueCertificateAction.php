@@ -9,6 +9,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\User;
 use App\Notifications\CertificateIssuedNotification;
+use App\Notifications\InstructorNotification;
 use App\Support\SafeNotify;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -23,8 +24,9 @@ class IssueCertificateAction
      *
      * Quiz attempts deliberately do not count: course completion is lesson completion.
      * The student is notified only by the call that actually created the certificate.
+     * $notifyInstructor lets the backfill command stay quiet about historic completions.
      */
-    public function execute(User $student, Course $course): ?Certificate
+    public function execute(User $student, Course $course, bool $notifyInstructor = true): ?Certificate
     {
         $existing = $this->existing($student, $course);
         if ($existing) {
@@ -53,6 +55,13 @@ class IssueCertificateAction
 
                 GenerateCertificatePdfJob::dispatch($certificate->id)->afterCommit();
                 SafeNotify::send($student, CertificateIssuedNotification::make($certificate));
+
+                if ($notifyInstructor
+                    && config('coursewave.notifications.instructor_course_completed')
+                    && $course->instructor
+                    && $course->instructor->id !== $student->id) {
+                    SafeNotify::send($course->instructor, InstructorNotification::courseCompleted($certificate));
+                }
 
                 return $certificate;
             } catch (UniqueConstraintViolationException $e) {
