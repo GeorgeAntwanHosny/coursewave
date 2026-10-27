@@ -6,12 +6,14 @@ use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\DevCertificateToolsController;
 use App\Http\Controllers\Api\LearningController;
+use App\Http\Controllers\Api\LiveSessionController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\SubscriptionController;
 use Illuminate\Broadcasting\BroadcastController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Simple connection-test endpoint for the Next.js frontend.
@@ -74,6 +76,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
         Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
         Route::get('/quizzes/{quiz}/attempts', [QuizController::class, 'attempts']);
+
+        // Live sessions: subscribers only (the join link is part of what a subscription unlocks).
+        Route::get('/live-sessions', [LiveSessionController::class, 'index']);
+        Route::get('/courses/{slug}/live-sessions', [LiveSessionController::class, 'forCourse']);
     });
 
     // Comments are authorized by CommentPolicy (active subscription, course instructor or admin),

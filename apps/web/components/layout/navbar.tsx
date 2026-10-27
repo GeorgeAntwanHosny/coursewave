@@ -36,6 +36,9 @@ export function Navbar() {
               <Link href="/certificates" className="text-sm text-muted-foreground hover:text-foreground">
                 Certificates
               </Link>
+              <Link href="/live" className="text-sm text-muted-foreground hover:text-foreground">
+                Live
+              </Link>
               <span className="text-sm text-muted-foreground">Hi, {user.name}</span>
               <Button variant="outline" size="sm" disabled={isPending} onClick={() => logout()}>
                 {isPending ? "Logging out..." : "Logout"}
@@ -80,6 +83,9 @@ export function Navbar() {
                 </Link>
                 <Link href="/certificates" className="text-sm text-muted-foreground hover:text-foreground">
                   Certificates
+                </Link>
+                <Link href="/live" className="text-sm text-muted-foreground hover:text-foreground">
+                  Live
                 </Link>
                 <Button
                   variant="outline"

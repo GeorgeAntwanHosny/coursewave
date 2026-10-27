@@ -8,6 +8,7 @@ const PROTECTED_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: "/billing", roles: [] },
   { prefix: "/learn", roles: [] },
   { prefix: "/certificates", roles: [] },
+  { prefix: "/live", roles: [] },
   { prefix: "/instructor", roles: ["instructor"] },
   { prefix: "/admin", roles: ["admin"] },
 ];
@@ -45,6 +46,7 @@ export const config = {
     "/billing/:path*",
     "/learn/:path*",
     "/certificates/:path*",
+    "/live/:path*",
     "/instructor/:path*",
     "/admin/:path*",
   ],

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Banknote, Bell, CheckCheck, CreditCard, MessageSquare, Receipt } from "lucide-react";
+import { Award, Banknote, Bell, CheckCheck, CreditCard, MessageSquare, Receipt, Video } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   NotificationItem,
@@ -18,9 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 // Matched by substring so the instructor and admin kinds (payout_failed, admin_refund_stuck, ...) get the right icon.
+// Matched by substring so the instructor and admin kinds (payout_failed, admin_refund_stuck, ...) get the right icon.
 function KindIcon({ kind }: { kind: string }) {
   const className = "h-4 w-4";
 
+  if (kind.includes("live_session")) return <Video className={className} />;
   if (kind.includes("payout")) return <Banknote className={className} />;
   if (kind.includes("refund")) return <Receipt className={className} />;
   if (kind.includes("comment")) return <MessageSquare className={className} />;

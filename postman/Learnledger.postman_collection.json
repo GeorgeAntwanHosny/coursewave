@@ -526,6 +526,42 @@
           }
         }
       ]
+    },
+    {
+      "name": "Live sessions",
+      "item": [
+        {
+          "name": "My live sessions (courses I have started)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/learning/live-sessions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "learning", "live-sessions"]
+            },
+            "description": "Upcoming and live sessions only. join_url is null until 15 minutes before the start, and always null for non-https links."
+          }
+        },
+        {
+          "name": "Live sessions for one course",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/learning/courses/{{course_slug}}/live-sessions",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "learning",
+                "courses",
+                "{{course_slug}}",
+                "live-sessions"
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "variable": [

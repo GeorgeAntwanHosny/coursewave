@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { Award } from "lucide-react";
 import { useCourseLearn } from "@/hooks/use-learning";
 import { useMyCertificates } from "@/hooks/use-certificates";
+import { useCourseLiveSessions } from "@/hooks/use-live-sessions";
+import { LiveSessionCard } from "@/components/live/live-session-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +16,7 @@ export default function CourseLearnPage() {
   const params = useParams<{ slug: string }>();
   const { data, isLoading, isError, error } = useCourseLearn(params.slug);
   const { data: certificates } = useMyCertificates();
+  const { data: liveSessions } = useCourseLiveSessions(params.slug);
 
   if (isLoading) {
     return (
@@ -78,6 +81,15 @@ export default function CourseLearnPage() {
             </Link>
           </CardContent>
         </Card>
+      )}
+
+      {liveSessions && liveSessions.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Live sessions</h2>
+          {liveSessions.map((session) => (
+            <LiveSessionCard key={session.id} session={session} showCourse={false} />
+          ))}
+        </div>
       )}
 
       <div className="space-y-2">
