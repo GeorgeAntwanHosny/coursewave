@@ -19,4 +19,12 @@ return [
         // The join link is revealed this many minutes before the start, until the session ends.
         'join_opens_minutes_before' => (int) env('LIVE_SESSION_JOIN_OPENS_MINUTES', 15),
     ],
+
+    'analytics' => [
+        // Dashboard aggregates are cached this long. 0 disables caching (tests do this).
+        'cache_seconds' => (int) env('ANALYTICS_CACHE_SECONDS', 300),
+
+        // The period the stat cards cover.
+        'default_days' => (int) env('ANALYTICS_DEFAULT_DAYS', 30),
+    ],
 ];

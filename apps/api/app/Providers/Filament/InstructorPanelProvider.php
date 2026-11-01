@@ -30,7 +30,10 @@ class InstructorPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Instructor/Pages'), for: 'App\\Filament\\Instructor\\Pages')
             ->pages([\Filament\Pages\Dashboard::class])
             ->discoverWidgets(in: app_path('Filament/Instructor/Widgets'), for: 'App\\Filament\\Instructor\\Widgets')
-            ->widgets([])
+            ->widgets([
+                \App\Filament\Instructor\Widgets\InstructorWeekStats::class,
+                \App\Filament\Instructor\Widgets\InstructorAttention::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

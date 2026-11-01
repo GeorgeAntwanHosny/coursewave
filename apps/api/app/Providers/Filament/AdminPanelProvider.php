@@ -29,7 +29,10 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->pages([\Filament\Pages\Dashboard::class])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
-            ->widgets([])
+            ->widgets([
+                \App\Filament\Admin\Widgets\PlatformAttention::class,
+                \App\Filament\Admin\Widgets\PlatformWeekStats::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
