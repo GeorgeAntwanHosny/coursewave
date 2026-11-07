@@ -52,7 +52,7 @@ export function CourseSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        <Accordion type="multiple" defaultValue={defaultOpen} className="w-full">
+        <Accordion multiple defaultValue={defaultOpen} className="w-full">
           {course.modules.map((module) => {
             const total = module.lessons.length;
             const completed = module.lessons.filter((l) => l.status === "completed").length;

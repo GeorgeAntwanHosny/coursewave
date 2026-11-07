@@ -1,0 +1,26 @@
+# DEMO / DEV overlay. Never use it for real money.
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d --build
+# (scripts/setup.ps1 -Mode demo does this for you.)
+#
+# It flips the API roles from production to local so that AnalyticsDemoSeeder, the /api/dev/* tools and
+# `notifications:test` are allowed to run, and turns on debug pages. Ports stay bound to 127.0.0.1.
+x-demo-env: &demo-env
+  APP_ENV: local
+  APP_DEBUG: "true"
+
+services:
+  migrate:
+    environment:
+      <<: *demo-env
+  web:
+    environment:
+      <<: *demo-env
+  worker:
+    environment:
+      <<: *demo-env
+  scheduler:
+    environment:
+      <<: *demo-env
+  reverb:
+    environment:
+      <<: *demo-env

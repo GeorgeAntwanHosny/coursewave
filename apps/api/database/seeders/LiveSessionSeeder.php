@@ -57,6 +57,9 @@ class LiveSessionSeeder extends Seeder
                 'description' => 'Bring your questions — we will go through them live.',
                 'starts_at' => $startsAt,
                 'duration_minutes' => $minutes,
+                // Set explicitly: DatabaseSeeder uses WithoutModelEvents, so the model's own
+                // starts_at + duration calculation does not run when this seeder is called through it.
+                'ends_at' => $startsAt->copy()->addMinutes($minutes),
                 'meeting_url' => $url,
                 'status' => 'scheduled',
             ]

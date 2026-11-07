@@ -45,7 +45,7 @@ class CertificateController extends Controller
 
         return $disk->download(
             $certificate->pdf_path,
-            "LearnLedger-Certificate-{$certificate->certificate_number}.pdf",
+            "CourseWave-Certificate-{$certificate->certificate_number}.pdf",
             ['Content-Type' => 'application/pdf']
         );
     }

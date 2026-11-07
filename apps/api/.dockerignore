@@ -1,0 +1,25 @@
+.git
+.idea
+.vscode
+node_modules
+vendor
+tests
+phpunit.xml
+.phpunit.cache
+
+# Never bake secrets or dev state into an image
+.env
+.env.*
+!.env.example
+
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/private/*
+storage/app/public/*
+storage/fonts/*
+bootstrap/cache/*.php
+public/hot
+public/storage
+database/*.sqlite

@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        // Behind the Caddy reverse proxy: trust X-Forwarded-Proto/Host so URLs and signatures use https.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'subscription.active' => \App\Http\Middleware\EnsureActiveSubscription::class,
         ]);

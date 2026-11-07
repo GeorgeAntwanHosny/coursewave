@@ -1,4 +1,4 @@
-# 🎓 LearnLedger — Subscription-Based Learning Platform (LMS)
+# 🎓 CourseWave — Subscription-Based Learning Platform (LMS)
 
 > Students subscribe once and get access to every instructor's courses. Each subscription's revenue is split among the instructors a student actually learns from, paid out on a schedule through an external payment provider — accurately, exactly once, at 500K-subscription scale, even when the provider itself can't tell you if it worked.
 
@@ -178,7 +178,7 @@ Because recognition only happens for days that have already elapsed (§2), a ref
 ## 📂 Monorepo Layout
 
 ```
-learnledger-monorepo/
+CourseWave-monorepo/
 ├── apps/
 │   ├── web/                      # Next.js — students only
 │   └── api/                      # Laravel — API + both Filament panels

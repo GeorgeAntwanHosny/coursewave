@@ -51,12 +51,14 @@ export function LiveSessionCard({ session, showCourse = true }: { session: LiveS
         {session.description && <p className="text-sm text-muted-foreground">{session.description}</p>}
 
         {session.can_join && session.join_url ? (
-          <Button asChild className="w-full sm:w-auto">
-            <a href={session.join_url} target="_blank" rel="noopener noreferrer">
+          <Button 
+            nativeButton={false}
+             render={<a href={session.join_url} target="_blank" rel="noopener noreferrer">
               <Video className="mr-2 h-4 w-4" />
               Join session
               <ExternalLink className="ml-2 h-3.5 w-3.5" />
-            </a>
+            </a>}
+            className="w-full sm:w-auto">
           </Button>
         ) : (
           <Button disabled variant="outline" className="w-full sm:w-auto">

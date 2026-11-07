@@ -35,7 +35,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 font-sans dark:bg-black">
       <main className="flex w-full max-w-lg flex-col items-center gap-6 rounded-2xl border border-black/10 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-zinc-900">
         <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          LearnLedger
+          CourseWave
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Next.js ↔ Laravel connection test

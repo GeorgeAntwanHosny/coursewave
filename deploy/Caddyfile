@@ -1,0 +1,21 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy frontend:3000
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 100MB
+	}
+	reverse_proxy web:8000
+}
+
+# Caddy proxies WebSockets automatically.
+{$WS_DOMAIN} {
+	reverse_proxy reverb:8080
+}

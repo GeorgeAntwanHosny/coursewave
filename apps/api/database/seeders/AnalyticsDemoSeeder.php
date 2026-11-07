@@ -761,6 +761,7 @@ class AnalyticsDemoSeeder extends Seeder
                 'description' => 'Demo session created by AnalyticsDemoSeeder.',
                 'starts_at' => $startsAt,
                 'duration_minutes' => $minutes,
+                'ends_at' => $startsAt->copy()->addMinutes($minutes),
                 'meeting_url' => $link,
                 'status' => $state === 'canceled' ? 'canceled' : 'scheduled',
                 'canceled_at' => $state === 'canceled' ? now() : null,
