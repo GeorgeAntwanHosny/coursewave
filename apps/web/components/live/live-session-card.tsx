@@ -8,6 +8,7 @@ import { describeCountdown, formatSessionStart, formatTimeOnly } from "@/lib/liv
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LinkButton } from "@/components/ui/link-button";
 import { cn } from "@/lib/utils";
 
 export function LiveSessionCard({ session, showCourse = true }: { session: LiveSessionItem; showCourse?: boolean }) {
@@ -51,18 +52,14 @@ export function LiveSessionCard({ session, showCourse = true }: { session: LiveS
         {session.description && <p className="text-sm text-muted-foreground">{session.description}</p>}
 
         {session.can_join && session.join_url ? (
-          <Button 
-            nativeButton={false}
-             render={<a href={session.join_url} target="_blank" rel="noopener noreferrer">
-              <Video className="mr-2 h-4 w-4" />
-              Join session
-              <ExternalLink className="ml-2 h-3.5 w-3.5" />
-            </a>}
-            className="w-full sm:w-auto">
-          </Button>
+          <LinkButton href={session.join_url} external className="w-full sm:w-auto">
+            <Video className="h-4 w-4" />
+            Join session
+            <ExternalLink className="h-3.5 w-3.5" />
+          </LinkButton>
         ) : (
           <Button disabled variant="outline" className="w-full sm:w-auto">
-            <Video className="mr-2 h-4 w-4" />
+            <Video className="h-4 w-4" />
             Link opens at {formatTimeOnly(session.join_opens_at)}
           </Button>
         )}

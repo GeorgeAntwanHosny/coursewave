@@ -1,209 +1,234 @@
-# 🎓 CourseWave — Subscription-Based Learning Platform (LMS)
+<div align="center">
 
-> Students subscribe once and get access to every instructor's courses. Each subscription's revenue is split among the instructors a student actually learns from, paid out on a schedule through an external payment provider — accurately, exactly once, at 500K-subscription scale, even when the provider itself can't tell you if it worked.
+# 🎓 CourseWave
+
+### One subscription. Every instructor. Paid fairly, to the cent.
+
+A full-stack learning platform where students subscribe once to access every course, and each payment is **split automatically among the instructors they actually learned from**, paid out through Stripe, accurately and exactly once.
+
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Stripe](https://img.shields.io/badge/Stripe-Connect-635BFF?logo=stripe&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
+[The problem](#-the-problem-it-solves) ·
+[Features](#-features) ·
+[How the money works](#-how-the-money-works) ·
+[Architecture](#-architecture) ·
+[Run it](#-run-it) ·
+[What I built](#-what-i-built)
+
+</div>
 
 ---
 
-## 📑 Contents
+## 💡 The problem it solves
 
-[Why This Project](#-why-this-project) · [Features](#-features) · [Tech Stack](#-tech-stack) · [Architecture](#-architecture) · [Payments & Payout Architecture](#-payments--payout-architecture-the-hard-part) · [Monorepo Layout](#-monorepo-layout) · [Roadmap](#-roadmap)
+Most course platforms stop at "student pays, student watches." The hard part is what happens to the money.
+
+| 🧑‍🎓 For students | 👩‍🏫 For instructors | 🏢 For the business |
+|---|---|---|
+| Pay once and learn from everyone, instead of buying course after course | Get paid for the value they actually delivered, not a flat guess | Know exactly what is owed, paid and outstanding at any moment |
+| Cancel and get back only the days that have not happened yet | See their earnings, learners and payout history | Never pay the same person twice, even when servers crash and retry |
+| Earn certificates anyone can verify | Reply to learners, run live sessions, track engagement | Refunds, payouts and revenue stay consistent, to the cent |
+
+**The core question this project answers:** *when one payment must be divided among many instructors, how do you make it fair, exact, auditable and safe, even when jobs retry, servers run in parallel and the payment provider goes silent?*
 
 ---
-
-## 🎯 Why This Project
-
-Most course-platform builds stop at "student pays, student watches." The actual hard problem here is financial: **one payment has to be divided, fairly and durably, among however many instructors a student's subscription touches** — and that division has to survive retried jobs, an unreliable payment provider, concurrent payout runs, and mid-term refunds, at a scale where "just recompute everything" isn't an option. Everything below is designed around that constraint first; the course-platform features are built on top of it, not the other way around.
 
 ## ✨ Features
 
-| Area | What it does |
-|---|---|
-| **Subscriptions** | Monthly / 3-month / annual plans, paid in full up front, deferred-revenue recognition over the term (see Architecture). |
-| **Catalog & content** | Courses → modules → lessons (video or text), instructor-managed via Filament, with attached resource links and quick quizzes per section. |
-| **Progress tracking** | Per-lesson watch/read progress, course-level completion %, visible to the student, the instructor (per-student), and admin (platform-wide analytics). |
-| **Comments** | Threaded comments on every lesson (video or text), replies included — the instructor's own replies are visually highlighted so students can tell who's answering. |
-| **Certificates** | Auto-generated PDF certificate on course completion, with a verifiable certificate number. |
-| **Notifications** | Persisted + live (Reverb) — new replies, live session reminders, certificate issued, payout processed — hybrid so nothing's missed if the recipient was offline. |
-| **Live sessions** | Instructor attaches a Zoom/Meet link to a scheduled session; enrolled students are notified. |
-| **Profiles** | Name, profile picture, email for every user — student, instructor, and admin. |
-| **Instructor dashboard (Filament)** | Course/content CRUD, resource & quiz management, own-course analytics, own earnings/payout history. |
-| **Admin dashboard (Filament)** | Every course, every student, every instructor, platform-wide analytics, manual payout controls, refund handling. |
-| **Payouts** | Scheduled, idempotent, provider-agnostic (Stripe first, pluggable second gateway) — see below. |
+### For students
+- **Three plans** (monthly, 3-month, annual) with Stripe Checkout and plan switching
+- **Courses, modules and lessons** in video or text, with resource links and quick quizzes
+- **Progress tracking** per lesson and per course
+- **Threaded discussions** on every lesson, with instructor replies highlighted
+- **Verifiable PDF certificates** generated on course completion, with a public verification page
+- **Live sessions** with a countdown and a join button that appears at the right moment
+- **Real-time notifications** over WebSockets, saved when you are offline
+- **Self-service cancellation** with a fair refund for unused days
 
-## 💻 Tech Stack
+### For instructors (Filament panel)
+- Course, lesson, quiz and resource management
+- **Dashboard** with a 7-day glance and a "needs attention" list
+- **Analytics:** earnings, learners, learning hours, completions, per-course performance
+- **Learners** page with per-student progress
+- Earnings, ledger and payout history; Stripe payout account onboarding
+- Schedule, edit and cancel live sessions; reply to comments
 
-| Layer | Choice |
-|---|---|
-| Student frontend | Next.js (App Router), TypeScript, Tailwind + shadcn/ui, TanStack Query, Zustand |
-| Instructor + admin dashboards | **Filament** — two panels (`/instructor`, `/admin`) on one Laravel app, gated by spatie/laravel-permission via Filament Shield |
-| Backend | Laravel, PHP 8.3+, Sanctum (student API), session/`web` guard (Filament panels) |
-| Data | PostgreSQL (partitioned ledger/event tables — see Architecture), Redis (cache/queue/cart-equivalent) |
-| Real-time | Laravel Reverb + Echo |
-| Payments | Stripe first, behind a `PaymentGatewayInterface` so a second gateway is a new implementation, not a rewrite |
-| PDF | Queued job, HTML → PDF, on lesson-completion event reaching 100% |
-| Infra | Docker, nginx + php-fpm + supervisord (day-1 defaults — see the starter kit's Docker gotchas) |
+### For admins (Filament panel)
+- Platform-wide **analytics**: revenue, growth, health, top instructors and courses
+- **Alerts first:** unconfirmed or failed payouts and refunds, instructors owed money with no payout account
+- Manual payout controls, refund handling, subscription and plan management
+
+---
+
+## 💰 How the money works
+
+This is the heart of the project. In plain language:
+
+```mermaid
+flowchart LR
+    A["💳 Student pays<br/>$120 for a year"] --> B["🏦 Held as<br/>deferred revenue"]
+    B --> C["📅 Each elapsed day<br/>becomes distributable"]
+    C --> D["✂️ Platform fee<br/>taken off the top"]
+    D --> E["⚖️ Split by watch time<br/>exact to the cent"]
+    E --> F["📒 Append-only ledger<br/>one row per credit"]
+    F --> G["💸 Weekly payout<br/>through Stripe, exactly once"]
+```
+
+| Idea | What it means | Why it matters |
+|---|---|---|
+| **Deferred revenue** | A year's payment is recognized day by day, never all on day one | Refunds become simple: only future days go back, and nobody is clawed back |
+| **Consumption-weighted split** | Each day's money is divided among the instructors a student actually learned from | Fair pay that follows real value |
+| **Largest-remainder method** | Cents that do not divide evenly are allocated deterministically | No fractional cents, no drift, every cent accounted for |
+| **Append-only ledger** | Money is never edited, only added as new rows | A full audit trail; balances can be rebuilt from scratch at any time |
+| **Idempotency keys** | Every money step carries a key stored in the database | A retried job or a crashed server cannot double-credit or double-pay |
+| **"Uncertain" is a real state** | If the payment provider times out, the system neither assumes success nor failure | Money is only marked paid after the provider confirms it |
+| **Database-enforced claims** | A unique constraint, not a lock, decides which server runs a payout | Two servers racing cannot both win |
+
+The full design is in [`docs/PAYMENTS_DESIGN.md`](docs/PAYMENTS_DESIGN.md).
+
+---
 
 ## 🏗️ Architecture
 
 ```mermaid
 flowchart TB
-    subgraph Client
-        Next[Next.js — students]
-        FilInst[Filament /instructor]
-        FilAdmin[Filament /admin]
+    subgraph Clients
+        Next["Next.js 16<br/>Student app"]
+        FilI["Filament<br/>/instructor"]
+        FilA["Filament<br/>/admin"]
     end
-    Next -->|Sanctum, REST| API[Laravel API]
-    FilInst -->|web guard, Livewire| API
-    FilAdmin -->|web guard, Livewire| API
-    API --> PG[(PostgreSQL)]
-    API --> Redis[(Redis)]
-    API --> Reverb[Laravel Reverb]
-    Reverb -.broadcast.-> Next
-    API --> GW[PaymentGatewayInterface]
-    GW --> Stripe[Stripe]
-    GW -.future.-> Other[Second gateway]
+
+    Next -->|"REST + Sanctum"| API["Laravel 13 API"]
+    FilI -->|"Livewire"| API
+    FilA -->|"Livewire"| API
+
+    API --> PG[("PostgreSQL 17<br/>partitioned ledger")]
+    API --> RD[("Redis<br/>cache · queue · sessions")]
+    API --> GW["PaymentGatewayInterface"]
+    GW --> Stripe["Stripe Connect"]
+
+    RD --> Worker["Queue workers"]
+    Worker --> Rev["Laravel Reverb<br/>WebSockets"]
+    Rev -.live notifications.-> Next
+    Sched["Scheduler (exactly one)"] --> API
 ```
 
-Two client surfaces (Next.js for students, Filament for instructors/admin), one Laravel app, one payment abstraction so a second gateway is additive.
+| Layer | Choice | Why |
+|---|---|---|
+| Student app | Next.js 16 (App Router), TypeScript, Tailwind, shadcn/ui, TanStack Query | Fast, typed, accessible, responsive UI in light and dark mode |
+| Instructor and admin | Filament on the same Laravel app | Powerful dashboards without a second codebase |
+| API | Laravel 13, PHP 8.4, Sanctum | Mature, testable, expressive domain code |
+| Data | PostgreSQL (monthly partitions), Redis | Handles tens of millions of ledger rows; fast queues and cache |
+| Real-time | Laravel Reverb and Echo | Live notifications without a third-party service |
+| Payments | Stripe Connect behind `PaymentGatewayInterface` | A second gateway is a new class, not a rewrite |
+| Infra | Docker Compose, nginx, php-fpm, supervisord, Caddy | One command to run the whole stack |
+
+### Built to scale
+Designed for **500K active subscriptions and tens of millions of records**: partitioned high-volume tables, chunked daily jobs where a crash only retries its own chunk, purpose-built indexes, and a rebuildable balance projection so dashboards never scan the whole ledger.
 
 ---
 
-## 💰 Payments & Payout Architecture (the hard part)
-
-### Design goals, restated as constraints
-
-1. At any moment, answer **owed / paid / outstanding** per instructor — from a query, not a guess.
-2. The payout process may run more than once, concurrently, from multiple servers. **No double payments, ever.**
-3. The provider can succeed, fail, or go silent *after* moving money. The design must not assume either outcome on silence.
-4. Background jobs crash and retry. Every step must be safe to re-run.
-5. Refunds happen mid-term, after the student already paid for the whole term up front.
-6. Money must divide evenly to the cent — no fractional cents, no drift.
-7. 500K active subscriptions, tens of millions of records.
-
-### 1. Money is integer cents, always
-
-Every amount column is `bigint` cents (never float, never decimal-with-rounding-surprises). All division uses integer arithmetic with an explicit remainder-allocation step (§4) — there is never a "close enough" cent.
-
-### 2. Don't recognize the whole payment as revenue on day one
-
-This is the central decision. A student paying $120 for an annual plan hasn't "earned" any instructor $120 worth of value on day one — they've prepaid for a term they haven't consumed yet. So the payment is stored as **deferred revenue** and recognized incrementally:
-
-- On subscription creation, the term is split into `term_days` **recognition slices**, each worth `total_amount_cents / term_days` (any leftover cents from integer division go on the final slice). All slices are created immediately, `status = pending`.
-- A daily job advances each subscription's *current* slice from `pending` → `recognized`, and only a recognized slice becomes distributable to instructors.
-
-This single decision is what makes refunds and idempotency both tractable — see §5 and §6.
-
-### 3. Instructor split is consumption-weighted, per slice
-
-"The instructors involved" means the instructors the student actually learned from *that day*, not every instructor on the platform. A lightweight, append-only `consumption_events` table logs watched-seconds (video) or read-completion (text) per `(subscription, student, instructor, lesson, date)`. When a slice recognizes:
-
-1. Sum watched-seconds per instructor for that subscription on that date → weight per instructor.
-2. Take the platform fee off the top: `platform_amount = floor(slice_cents × fee_percent)`, `instructor_pool = slice_cents − platform_amount` — exact, no drift.
-3. Split `instructor_pool` by weight using the **largest-remainder method** (§4).
-4. If there was *zero* consumption that day (student didn't engage with anything), the slice doesn't recognize to anyone — it stays `pending` and gets picked up together with the next day that *does* have activity, or resolved at term-end using the subscription's cumulative consumption share to date. If a student never engages with anything for an entire term, that revenue is retained as platform revenue — no instructor delivered value to attribute it to. This is a deliberate, stated business rule, not an oversight.
-
-### 4. Splitting cents that don't divide evenly — the largest-remainder method
-
-Given `instructor_pool` cents and N instructor weights:
-```
-raw_i    = instructor_pool × weight_i
-floor_i  = floor(raw_i)
-remainder = instructor_pool − Σ floor_i        # a small integer, always < N
-```
-Distribute `remainder` one cent at a time to the instructors with the largest fractional part (`raw_i − floor_i`), ties broken by `instructor_id` ascending for determinism. Every cent is accounted for; no instructor is arbitrarily favored run after run.
-
-### 5. The ledger is the only source of truth — never a mutable balance
+## 📂 Repository layout
 
 ```
-ledger_entries (append-only, partitioned by month on created_at)
-  id
-  instructor_id           nullable  -- null for platform_fee entries
-  entry_type               enum(accrual, payout, refund_adjustment, platform_fee)
-  amount_cents              bigint   -- +credit / −debit
-  subscription_id           FK, nullable
-  recognition_slice_id      FK, nullable
-  payout_batch_id            FK, nullable
-  idempotency_key            varchar UNIQUE   -- e.g. "accrual:{subscription_id}:{date}:{instructor_id}"
-  created_at
-```
-**No `UPDATE` ever touches a money total.** Every accrual, payout, and adjustment is a new row. The unique `idempotency_key` means a daily recognition job — or a crashed-and-retried one, or two overlapping ones — can run the exact same insert twice and the second attempt simply no-ops (`ON CONFLICT DO NOTHING`) instead of double-crediting anyone. This is what makes "the job ran twice" a non-event rather than an incident.
-
-**Answering the three required questions becomes pure aggregation:**
-```sql
-owed_cents       = SUM(amount_cents) WHERE entry_type='accrual'  AND instructor_id = ?
-paid_cents       = SUM(amount_cents) WHERE entry_type='payout'   AND instructor_id = ?   -- always negative, stored as a debit
-outstanding_cents = owed_cents + paid_cents
-```
-At scale, this aggregate is also maintained as a **derived, rebuildable projection** (`instructor_balances`, updated in the same transaction as each ledger insert) purely so a dashboard query doesn't scan tens of millions of rows — but the projection is never authoritative. If it ever drifts, it's rebuilt from the ledger, which is always correct by construction.
-
-### 6. Payout runs: exactly-once under concurrency
-
-```mermaid
-stateDiagram-v2
-    [*] --> Claimed: INSERT payout_batches\n(instructor_id, period_start, period_end)\nUNIQUE constraint
-    Claimed --> Pending: amount computed from ledger
-    Pending --> Submitted: call provider with stored idempotency_key
-    Submitted --> Succeeded: provider confirms
-    Submitted --> Failed: provider explicitly declines
-    Submitted --> Uncertain: timeout / no response
-    Uncertain --> Reconciling: look up by idempotency_key
-    Reconciling --> Succeeded
-    Reconciling --> Failed
-    Succeeded --> [*]: ledger payout entry inserted
-    Failed --> [*]: flagged for manual review, still owed
-```
-
-- **Claiming a batch:** `payout_batches` has a `UNIQUE (instructor_id, period_start, period_end)` constraint. Two overlapping schedules, a manual re-trigger, or two servers racing all try to `INSERT` the same row — exactly one wins. This is the primary defense, not a distributed lock (locks alone aren't enough — they can expire mid-job); the database constraint is what actually can't be raced.
-- **Computing the amount** happens once, at claim time, from the ledger — and is stored on the batch, not recomputed on retry.
-- **Calling the provider** is a *separate* step from claiming, using a `gateway_idempotency_key` generated once at batch creation and persisted. Every retry of the provider call — whether from a crash, a timeout, or a queue retry — resends the *same* key. Stripe (and any competent gateway) dedupes on that key: a retried request either creates the transfer once or returns the original result, never a second transfer. This is the actual mechanism that makes "provider succeeded but we don't know" safe.
-- **On timeout/no-response:** status goes to `uncertain`, never straight to `failed` and never assumed `succeeded`. A reconciliation job looks the transfer up by idempotency key against the provider before anything is marked final. Only a *confirmed* outcome writes the ledger `payout` entry — so "paid" can never be recorded speculatively.
-
-### 7. Refunds mid-term
-
-Because recognition only happens for days that have already elapsed (§2), a refund is simple by construction:
-
-1. Void every `pending` (not-yet-recognized) slice for the subscription.
-2. Refund the student `Σ voided slice amounts` via the provider, using an idempotency key derived from the subscription id (safe against duplicate refund requests too).
-3. **No instructor clawback.** Every `accrual` ledger entry that already exists was for a slice that already recognized — meaning that day already elapsed and (if there was consumption) instructors already delivered value for it. Only money for days that *hadn't happened yet* gets refunded, and that money was never distributed to anyone in the first place.
-
-### 8. Scale: 500K subscriptions, tens of millions of records
-
-- `ledger_entries` and `consumption_events` are the two high-volume tables (500K subscriptions × ~365 slices/year × multiple instructors is comfortably in the tens-of-millions range) — both **partitioned by month** on their timestamp column, keeping indexes small and making old-partition archival trivial.
-- Daily recognition runs as **chunked jobs** (`Subscription::query()->chunkById(1000, ...)`, one job per chunk), so a crash mid-run only needs to retry its own chunk — the unique idempotency keys make that retry safe regardless of chunk boundaries.
-- Indexes: `ledger_entries (instructor_id, entry_type, created_at)` for balance aggregation; `consumption_events (subscription_id, event_date, instructor_id)` for daily weight computation.
-- `instructor_balances` projection (§5) exists purely so dashboard reads don't aggregate the full ledger on every request.
-
----
-
-## 📂 Monorepo Layout
-
-```
-CourseWave-monorepo/
+.
 ├── apps/
-│   ├── web/                      # Next.js — students only
-│   └── api/                      # Laravel — API + both Filament panels
-│       ├── app/
-│       │   ├── Actions/                # Public API business logic
-│       │   ├── Filament/
-│       │   │   ├── Instructor/Resources/    # Course/lesson/quiz CRUD
-│       │   │   └── Admin/Resources/          # Platform-wide oversight
-│       │   ├── Domain/
-│       │   │   ├── Billing/                  # Subscriptions, recognition, ledger, payouts
-│       │   │   ├── Learning/                  # Courses, lessons, progress, comments
-│       │   │   └── Certificates/
-│       │   ├── Services/Payments/             # PaymentGatewayInterface + StripeGateway
-│       │   ├── Models/
-│       │   ├── Notifications/
-│       │   └── Policies/
-│       └── docker/
-├── postman/
-├── docker-compose.yml
-├── .env.example
-├── README.md
-├── PROJECT_STATE.md
-└── AI_SESSION_WORKFLOW.md
+│   ├── web/                 # Next.js student app            → apps/web/README.md
+│   └── api/                 # Laravel API + both Filament panels → apps/api/README.md
+├── scripts/                 # setup, env generation, smoke test (PowerShell)
+├── deploy/                  # Caddy config for automatic HTTPS
+├── docs/                    # Payments design document
+├── docker-compose.yml       # The stack
+├── docker-compose.demo.yml  # Demo overlay (sample data)
+├── docker-compose.prod.yml  # HTTPS overlay (Caddy)
+├── DOCKER.md                # Full run guide: demo and production
+└── PROJECT_STATE.md         # Build log: every phase, decision and test
 ```
 
-## 🗺️ Roadmap
+---
 
-See `PROJECT_STATE.md` → Next Steps for the full phase breakdown. In short: auth/profiles → course content (Filament) → subscription intake → consumption tracking → revenue recognition + ledger → payout runs + reconciliation → refunds → comments → certificates → notifications → live sessions → analytics → Docker.
+## 🚀 Run it
+
+You need **Docker Desktop** and **PowerShell**. Nothing else.
+
+```powershell
+# See everything with realistic data (about 95 days of activity, 40 students)
+.\scripts\setup.ps1 -Mode demo
+
+# Verify it is healthy
+.\scripts\smoke-test.ps1 -Mode demo
+```
+
+Then open:
+
+| | |
+|---|---|
+| 🎓 Student app | http://localhost:3000 |
+| 👩‍🏫 Instructor panel | http://localhost:8000/instructor |
+| 🛠️ Admin panel | http://localhost:8000/admin |
+
+Demo logins are printed by the setup script and listed in [`DOCKER.md`](DOCKER.md), which also covers a clean **production** setup, HTTPS, backups and troubleshooting.
+
+---
+
+## 🧱 What I built
+
+The project was built in **13 phases**, each shipped with automated tests:
+
+| # | Phase | Highlights |
+|:-:|---|---|
+| 1 | Auth, roles and panels | Registration, login, three roles, two Filament panels |
+| 2 | Course content | Courses, modules, lessons, links, quizzes, public catalog |
+| 3 | Subscriptions | Stripe Checkout, webhook-authoritative confirmation, plan switching |
+| 4 | Consumption tracking | Watch and read heartbeats, quiz grading, learning UI |
+| 5 | Revenue recognition and ledger | Daily recognition, largest-remainder split, partitioned ledger |
+| 6 | Payouts | Exactly-once claims, reconciliation, Stripe Connect onboarding |
+| 7 | Refunds | Cancel flow, idempotent provider calls, admin tools |
+| 8 | Comments | Threaded discussions with instructor highlight |
+| 9 | Certificates | PDF generation, public verification |
+| 10 | Notifications | Persisted and live over WebSockets, in three surfaces |
+| 11 | Live sessions | Scheduling, countdown, at-most-once reminders |
+| 12 | Analytics | Instructor and admin dashboards, cached aggregates |
+| 13 | Dockerization | One-command demo and production, smoke tests, HTTPS |
+
+### By the numbers
+
+| | |
+|---|---|
+| 🧪 Automated backend tests | **240+** across billing, payouts, refunds, notifications and analytics |
+| 🐳 Containers | **9**, from one API image run in five roles |
+| 👥 User roles | **3**: student, instructor, admin |
+| 🔌 Money invariants | Exact to the cent · idempotent · auditable · rebuildable |
+
+### Engineering highlights
+
+- 🔒 **Safe by construction:** money moves only through idempotent, database-guarded steps, so retries are harmless.
+- 🧩 **Provider-agnostic:** payments sit behind an interface, so Stripe can be swapped or joined by another gateway.
+- 🛡️ **Ownership enforced twice:** every instructor-facing query is scoped and policy-checked.
+- 📈 **Observable:** every provider call is logged in an append-only attempt log, and admins are alerted to anything unconfirmed.
+- 🐳 **Reproducible:** demo and production are two explicit, separate modes, and a smoke test proves a deployment is healthy.
+
+---
+
+## 📚 More documentation
+
+| Document | What it covers |
+|---|---|
+| [`DOCKER.md`](DOCKER.md) | Run guide for demo and production, backups, HTTPS |
+| [`apps/web/README.md`](apps/web/README.md) | Frontend: structure, state, real-time, UX standards |
+| [`apps/api/README.md`](apps/api/README.md) | Backend: domains, money engine, scheduler, tests |
+| [`docs/PAYMENTS_DESIGN.md`](docs/PAYMENTS_DESIGN.md) | The payment and payout design in depth |
+| [`PROJECT_STATE.md`](PROJECT_STATE.md) | The complete build log |
+
+<div align="center">
+
+Built by **George Antwan Hosny Ghaly;** · [LinkedIn](https://www.linkedin.com/in/georgeantwan/) · [Portfolio](https://georgeantwanhosny.github.io/portfolio/)
+
+</div>
